@@ -1,0 +1,29 @@
+{
+  "shopify": {
+    "shop_domain": "your-shop.myshopify.com",
+    "access_token": "shpat_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "api_version": "2026-01",
+    "client_id": "",
+    "client_secret": ""
+  },
+  "youzan": {
+    "access_token": "your_youzan_access_token_here",
+    "client_id": "",
+    "client_secret": "",
+    "shop_id": ""
+  },
+  "notifications": {
+    "telegram_chat_id": "1196749626"
+  },
+  "alerts": {
+    "low_stock_threshold": 10,
+    "order_poll_interval_minutes": 15
+  },
+  "report": {
+    "daily_report_hour": 8,
+    "timezone": "Asia/Shanghai"
+  },
+  "webhooks": {
+    "secret": ""
+  }
+}

@@ -1,0 +1,8 @@
+config.json
+scripts/data/
+dashboard/live.html
+scripts/.last-order-check.json
+*-export.csv
+bulk-import-errors.csv
+node_modules/
+.env

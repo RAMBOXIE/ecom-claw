@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🦞 电商龙虾 Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif;
+    background: #0f0f17;
+    color: #e8e8f0;
+    min-height: 100vh;
+    padding: 20px;
+  }
+  .header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .header h1 { font-size: 22px; font-weight: 700; }
+  .header .sub { font-size: 13px; color: #888; margin-top: 2px; }
+  .badge {
+    background: #ff6b35;
+    color: white;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+  .metric-card {
+    background: #1a1a2e;
+    border: 1px solid #2a2a4a;
+    border-radius: 14px;
+    padding: 18px 20px;
+  }
+  .metric-card .label { font-size: 12px; color: #888; margin-bottom: 8px; }
+  .metric-card .value { font-size: 28px; font-weight: 700; color: #fff; }
+  .metric-card .sub { font-size: 12px; margin-top: 6px; }
+  .metric-card .trend-up { color: #4ade80; }
+  .metric-card .trend-down { color: #f87171; }
+  .metric-card .warn { color: #fbbf24; }
+
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
+  .row-3 { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; margin-bottom: 20px; }
+
+  .card {
+    background: #1a1a2e;
+    border: 1px solid #2a2a4a;
+    border-radius: 14px;
+    padding: 20px;
+  }
+  .card h3 { font-size: 14px; color: #aaa; margin-bottom: 16px; font-weight: 600; letter-spacing: 0.5px; }
+
+  .order-row {
+    display: flex;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #2a2a4a;
+    gap: 12px;
+  }
+  .order-row:last-child { border-bottom: none; }
+  .order-num { font-size: 13px; font-weight: 600; color: #a78bfa; min-width: 60px; }
+  .order-info { flex: 1; }
+  .order-name { font-size: 13px; }
+  .order-items { font-size: 11px; color: #888; margin-top: 2px; }
+  .order-amount { font-size: 14px; font-weight: 600; color: #4ade80; }
+  .status-badge {
+    font-size: 10px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-weight: 600;
+  }
+  .status-paid { background: #064e3b; color: #4ade80; }
+  .status-pending { background: #451a03; color: #fbbf24; }
+  .status-unfulfilled { background: #3b1414; color: #f87171; }
+
+  .stock-row {
+    display: flex;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #2a2a4a;
+    gap: 10px;
+  }
+  .stock-row:last-child { border-bottom: none; }
+  .stock-name { flex: 1; font-size: 13px; }
+  .stock-qty {
+    font-size: 13px;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 8px;
+  }
+  .stock-ok { background: #064e3b; color: #4ade80; }
+  .stock-low { background: #451a03; color: #fbbf24; }
+  .stock-critical { background: #3b1414; color: #f87171; }
+
+  .product-row {
+    display: flex;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid #2a2a4a;
+    gap: 10px;
+  }
+  .product-row:last-child { border-bottom: none; }
+  .product-rank { font-size: 12px; color: #888; min-width: 20px; }
+  .product-name { flex: 1; font-size: 13px; }
+  .product-qty { font-size: 13px; font-weight: 600; color: #a78bfa; }
+
+  .empty { color: #555; font-size: 13px; text-align: center; padding: 20px; }
+
+  .last-update { font-size: 11px; color: #555; text-align: right; margin-top: 8px; }
+
+  .setup-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.85);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 100;
+  }
+  .setup-box {
+    background: #1a1a2e;
+    border: 1px solid #4a4a7a;
+    border-radius: 16px;
+    padding: 32px;
+    max-width: 440px;
+    text-align: center;
+  }
+  .setup-box .emoji { font-size: 48px; margin-bottom: 12px; }
+  .setup-box h2 { font-size: 20px; margin-bottom: 8px; }
+  .setup-box p { font-size: 13px; color: #888; line-height: 1.6; margin-bottom: 20px; }
+  .setup-box code {
+    background: #0f0f17;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+    color: #a78bfa;
+  }
+  .btn {
+    background: #6d28d9;
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .btn:hover { background: #7c3aed; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>🦞 电商龙虾 Dashboard</h1>
+    <div class="sub" id="shop-name">连接中...</div>
+  </div>
+  <span class="badge" id="live-badge">LIVE</span>
+</div>
+
+<!-- 核心指标 -->
+<div class="metrics">
+  <div class="metric-card">
+    <div class="label">📦 今日订单</div>
+    <div class="value" id="m-orders">—</div>
+    <div class="sub warn" id="m-pending">—</div>
+  </div>
+  <div class="metric-card">
+    <div class="label">💰 今日销售额</div>
+    <div class="value" id="m-revenue">—</div>
+    <div class="sub" id="m-currency"></div>
+  </div>
+  <div class="metric-card">
+    <div class="label">🛒 平均客单价</div>
+    <div class="value" id="m-aov">—</div>
+  </div>
+  <div class="metric-card">
+    <div class="label">⚠️ 低库存 SKU</div>
+    <div class="value" id="m-lowstock">—</div>
+    <div class="sub warn" id="m-lowstock-sub"></div>
+  </div>
+</div>
+
+<div class="row-3">
+  <!-- 最新订单 -->
+  <div class="card">
+    <h3>🕐 最新订单</h3>
+    <div id="orders-list"><div class="empty">加载中...</div></div>
+  </div>
+
+  <!-- 热销商品 -->
+  <div class="card">
+    <h3>🏆 今日热销</h3>
+    <div id="products-list"><div class="empty">加载中...</div></div>
+  </div>
+</div>
+
+<div class="row">
+  <!-- 7日销售趋势 -->
+  <div class="card">
+    <h3>📈 7日销售趋势</h3>
+    <canvas id="sales-chart" height="120"></canvas>
+  </div>
+
+  <!-- 低库存预警 -->
+  <div class="card">
+    <h3>📦 库存预警</h3>
+    <div id="stock-list"><div class="empty">加载中...</div></div>
+  </div>
+</div>
+
+<div class="last-update">最后更新：<span id="last-update-time">—</span></div>
+
+<!-- 未配置提示 -->
+<div class="setup-overlay" id="setup-overlay" style="display:none">
+  <div class="setup-box">
+    <div class="emoji">🦞</div>
+    <h2>欢迎，电商龙虾来了！</h2>
+    <p>请先完成配置，然后在龙虾那边告诉我你的 Shopify 信息。<br>
+    或者直接运行：<br><br>
+    <code>node skills/ecommerce/scripts/connect-test.mjs</code>
+    </p>
+    <button class="btn" onclick="document.getElementById('setup-overlay').style.display='none'">我知道了</button>
+  </div>
+</div>
+
+<script>
+// Dashboard 数据由 window.__ECOM_DATA__ 注入（龙虾通过 canvas eval 传入）
+// 或者展示 demo 数据
+
+let chart = null;
+
+function renderDashboard(data) {
+  if (!data) {
+    document.getElementById('setup-overlay').style.display = 'flex';
+    return;
+  }
+
+  const { summary, shop, lowStock, weeklyTrend } = data;
+
+  // 店铺名
+  document.getElementById('shop-name').textContent = shop?.name || 'My Shop';
+
+  // 核心指标
+  document.getElementById('m-orders').textContent = summary.totalOrders;
+  document.getElementById('m-pending').textContent = `待发货 ${summary.pendingCount} 单`;
+  document.getElementById('m-revenue').textContent = summary.totalRevenue;
+  document.getElementById('m-currency').textContent = summary.currency;
+  document.getElementById('m-aov').textContent = summary.avgOrderValue;
+  document.getElementById('m-lowstock').textContent = lowStock?.length ?? 0;
+  document.getElementById('m-lowstock-sub').textContent = lowStock?.length > 0 ? '需要补货' : '库存充足';
+
+  // 最新订单
+  const ordersList = document.getElementById('orders-list');
+  if (summary.allOrders && summary.allOrders.length > 0) {
+    ordersList.innerHTML = summary.allOrders.slice(0, 6).map(o => {
+      const items = (o.line_items || []).map(i => `${i.title}×${i.quantity}`).join('、');
+      const name = o.shipping_address?.name || o.billing_address?.name || o.email || '买家';
+      const statusClass = o.financial_status === 'paid' ? 'status-paid' : 'status-pending';
+      const statusText = o.financial_status === 'paid' ? '已付款' : o.financial_status;
+      return `
+        <div class="order-row">
+          <div class="order-num">#${o.order_number}</div>
+          <div class="order-info">
+            <div class="order-name">${name}</div>
+            <div class="order-items">${items.substring(0, 50)}${items.length > 50 ? '...' : ''}</div>
+          </div>
+          <div class="order-amount">${o.currency} ${o.total_price}</div>
+          <span class="status-badge ${statusClass}">${statusText}</span>
+        </div>`;
+    }).join('');
+  } else {
+    ordersList.innerHTML = '<div class="empty">今日暂无订单</div>';
+  }
+
+  // 热销商品
+  const productsList = document.getElementById('products-list');
+  if (summary.topProducts && summary.topProducts.length > 0) {
+    productsList.innerHTML = summary.topProducts.map((p, i) => `
+      <div class="product-row">
+        <div class="product-rank">${['🥇','🥈','🥉','4','5'][i]}</div>
+        <div class="product-name">${p.name}</div>
+        <div class="product-qty">×${p.qty}</div>
+      </div>`).join('');
+  } else {
+    productsList.innerHTML = '<div class="empty">暂无销售数据</div>';
+  }
+
+  // 低库存
+  const stockList = document.getElementById('stock-list');
+  if (lowStock && lowStock.length > 0) {
+    stockList.innerHTML = lowStock.slice(0, 6).map(p => {
+      const cls = p.quantity <= 3 ? 'stock-critical' : p.quantity <= 10 ? 'stock-low' : 'stock-ok';
+      const name = p.productTitle + (p.variantTitle !== 'Default Title' ? ` (${p.variantTitle})` : '');
+      return `<div class="stock-row">
+        <div class="stock-name">${name}</div>
+        <div class="stock-qty ${cls}">${p.quantity}</div>
+      </div>`;
+    }).join('');
+  } else {
+    stockList.innerHTML = '<div class="empty">✅ 所有商品库存充足</div>';
+  }
+
+  // 7日趋势图
+  if (weeklyTrend) {
+    const ctx = document.getElementById('sales-chart').getContext('2d');
+    if (chart) chart.destroy();
+    chart = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: weeklyTrend.map(d => d.date.slice(5)),
+        datasets: [{
+          label: '销售额',
+          data: weeklyTrend.map(d => d.revenue),
+          borderColor: '#a78bfa',
+          backgroundColor: 'rgba(167,139,250,0.1)',
+          borderWidth: 2,
+          tension: 0.4,
+          fill: true,
+          pointRadius: 4,
+          pointBackgroundColor: '#a78bfa'
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { color: '#2a2a4a' }, ticks: { color: '#888' } },
+          y: { grid: { color: '#2a2a4a' }, ticks: { color: '#888' } }
+        }
+      }
+    });
+  }
+
+  document.getElementById('last-update-time').textContent = new Date().toLocaleString('zh-CN');
+}
+
+// 等待数据注入
+function waitForData() {
+  if (window.__ECOM_DATA__) {
+    renderDashboard(window.__ECOM_DATA__);
+  } else {
+    // 5秒后没有数据就显示提示
+    setTimeout(() => {
+      if (!window.__ECOM_DATA__) {
+        document.getElementById('setup-overlay').style.display = 'flex';
+        document.getElementById('shop-name').textContent = '未连接';
+      }
+    }, 5000);
+  }
+}
+
+// 提供外部注入接口
+window.loadEcomData = renderDashboard;
+waitForData();
+</script>
+</body>
+</html>
