@@ -6,6 +6,8 @@
 import { readFileSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import https from 'https';
+import http from 'http';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const CONFIG_PATH = join(__dirname, '..', 'config.json');
@@ -203,9 +205,39 @@ export async function bulkUpdatePrices(updates) {
 }
 
 /** 添加商品图片 */
-export async function uploadProductImage(productId, imageUrl) {
+/** 下载图片到 Buffer（跟随重定向） */
+function downloadImageBuffer(url, redirects = 0) {
+  return new Promise((resolve, reject) => {
+    if (redirects > 5) return reject(new Error('Too many redirects'));
+    const mod = url.startsWith('https') ? https : http;
+    mod.get(url, { headers: { 'User-Agent': 'Mozilla/5.0' } }, res => {
+      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+        return downloadImageBuffer(res.headers.location, redirects + 1).then(resolve).catch(reject);
+      }
+      const chunks = [];
+      res.on('data', c => chunks.push(c));
+      res.on('end', () => resolve({ buffer: Buffer.concat(chunks), contentType: res.headers['content-type'] || 'image/jpeg' }));
+    }).on('error', reject);
+  });
+}
+
+/**
+ * 上传商品图片（自动用 base64 方案，兼容 Trial 账号）
+ * @param {string|number} productId - Shopify 商品 ID
+ * @param {string} imageUrl - 图片 URL（会先下载再 base64 上传）
+ * @param {string} [alt] - 图片 alt 文字
+ * @param {number} [position] - 图片排序位置
+ */
+export async function uploadProductImage(productId, imageUrl, alt = '', position = 1) {
+  const { buffer, contentType } = await downloadImageBuffer(imageUrl);
+  const ext = contentType.includes('png') ? 'png' : contentType.includes('gif') ? 'gif' : 'jpg';
   const data = await shopifyPost(`/products/${productId}/images.json`, {
-    image: { src: imageUrl }
+    image: {
+      attachment: buffer.toString('base64'),
+      filename: `product-${productId}-${position}.${ext}`,
+      alt,
+      position,
+    }
   });
   return data.image;
 }

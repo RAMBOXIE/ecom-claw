@@ -3,364 +3,597 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>🦞 电商龙虾 Dashboard</title>
+<title>电商龙虾 🦞</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', sans-serif;
-    background: #0f0f17;
-    color: #e8e8f0;
-    min-height: 100vh;
-    padding: 20px;
-  }
-  .header {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-bottom: 24px;
-  }
-  .header h1 { font-size: 22px; font-weight: 700; }
-  .header .sub { font-size: 13px; color: #888; margin-top: 2px; }
-  .badge {
-    background: #ff6b35;
-    color: white;
-    padding: 2px 10px;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 600;
-  }
+:root {
+  --bg: #0d0f1a; --card: #151829; --border: #1e2340;
+  --accent: #6c63ff; --accent2: #ff6584; --green: #43e97b;
+  --yellow: #f9ca24; --red: #e74c3c; --text: #e0e4ff;
+  --muted: #6b7db3; --radius: 14px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: -apple-system,'PingFang SC','Microsoft YaHei',sans-serif; min-height: 100vh; }
 
-  .metrics {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 14px;
-    margin-bottom: 20px;
-  }
-  .metric-card {
-    background: #1a1a2e;
-    border: 1px solid #2a2a4a;
-    border-radius: 14px;
-    padding: 18px 20px;
-  }
-  .metric-card .label { font-size: 12px; color: #888; margin-bottom: 8px; }
-  .metric-card .value { font-size: 28px; font-weight: 700; color: #fff; }
-  .metric-card .sub { font-size: 12px; margin-top: 6px; }
-  .metric-card .trend-up { color: #4ade80; }
-  .metric-card .trend-down { color: #f87171; }
-  .metric-card .warn { color: #fbbf24; }
+/* ── 页面容器 ── */
+.page { display: none; min-height: 100vh; }
+.page.active { display: block; }
 
-  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 20px; }
-  .row-3 { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; margin-bottom: 20px; }
+/* ── 顶部导航 ── */
+.topbar { background: var(--card); border-bottom: 1px solid var(--border); padding: 14px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+.topbar .brand { font-size: 18px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.topbar .steps { display: flex; gap: 8px; }
+.step-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); transition: .3s; }
+.step-dot.active { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+.step-dot.done { background: var(--green); }
 
-  .card {
-    background: #1a1a2e;
-    border: 1px solid #2a2a4a;
-    border-radius: 14px;
-    padding: 20px;
-  }
-  .card h3 { font-size: 14px; color: #aaa; margin-bottom: 16px; font-weight: 600; letter-spacing: 0.5px; }
+/* ── P1 英雄区 ── */
+.hero { text-align: center; padding: 60px 32px 40px; }
+.hero h1 { font-size: 36px; font-weight: 800; background: linear-gradient(135deg, var(--accent), var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 12px; }
+.hero p { color: var(--muted); font-size: 16px; max-width: 560px; margin: 0 auto; line-height: 1.7; }
 
-  .order-row {
-    display: flex;
-    align-items: center;
-    padding: 10px 0;
-    border-bottom: 1px solid #2a2a4a;
-    gap: 12px;
-  }
-  .order-row:last-child { border-bottom: none; }
-  .order-num { font-size: 13px; font-weight: 600; color: #a78bfa; min-width: 60px; }
-  .order-info { flex: 1; }
-  .order-name { font-size: 13px; }
-  .order-items { font-size: 11px; color: #888; margin-top: 2px; }
-  .order-amount { font-size: 14px; font-weight: 600; color: #4ade80; }
-  .status-badge {
-    font-size: 10px;
-    padding: 2px 8px;
-    border-radius: 20px;
-    font-weight: 600;
-  }
-  .status-paid { background: #064e3b; color: #4ade80; }
-  .status-pending { background: #451a03; color: #fbbf24; }
-  .status-unfulfilled { background: #3b1414; color: #f87171; }
+/* ── Agent 卡片 ── */
+.agents-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; padding: 0 32px 32px; max-width: 1100px; margin: 0 auto; }
+.agent-card { background: var(--card); border: 2px solid var(--border); border-radius: var(--radius); padding: 22px; cursor: pointer; transition: all .2s; position: relative; }
+.agent-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+.agent-card.selected { border-color: var(--accent); background: #1a1d35; }
+.agent-card .toggle { position: absolute; top: 18px; right: 18px; }
+.toggle input { display: none; }
+.toggle label { display: block; width: 44px; height: 24px; background: var(--border); border-radius: 12px; cursor: pointer; position: relative; transition: .3s; }
+.toggle label::after { content: ''; position: absolute; width: 18px; height: 18px; background: #fff; border-radius: 50%; top: 3px; left: 3px; transition: .3s; }
+.toggle input:checked + label { background: var(--accent); }
+.toggle input:checked + label::after { left: 23px; }
+.agent-icon { font-size: 32px; margin-bottom: 12px; }
+.agent-name { font-size: 17px; font-weight: 700; margin-bottom: 6px; }
+.agent-desc { color: var(--muted); font-size: 13px; line-height: 1.6; margin-bottom: 14px; }
+.agent-tasks { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag { font-size: 11px; padding: 3px 8px; border-radius: 6px; background: rgba(108,99,255,.15); color: var(--accent); border: 1px solid rgba(108,99,255,.3); }
+.tag.req { background: rgba(249,202,36,.1); color: var(--yellow); border-color: rgba(249,202,36,.3); }
 
-  .stock-row {
-    display: flex;
-    align-items: center;
-    padding: 8px 0;
-    border-bottom: 1px solid #2a2a4a;
-    gap: 10px;
-  }
-  .stock-row:last-child { border-bottom: none; }
-  .stock-name { flex: 1; font-size: 13px; }
-  .stock-qty {
-    font-size: 13px;
-    font-weight: 700;
-    padding: 2px 10px;
-    border-radius: 8px;
-  }
-  .stock-ok { background: #064e3b; color: #4ade80; }
-  .stock-low { background: #451a03; color: #fbbf24; }
-  .stock-critical { background: #3b1414; color: #f87171; }
+/* ── 底部 CTA ── */
+.cta-bar { position: sticky; bottom: 0; background: linear-gradient(transparent, var(--bg) 30%); padding: 20px 32px 32px; text-align: center; }
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 14px 36px; border-radius: 50px; font-size: 15px; font-weight: 600; cursor: pointer; border: none; transition: all .2s; }
+.btn-primary { background: linear-gradient(135deg, var(--accent), #9b59b6); color: #fff; box-shadow: 0 4px 20px rgba(108,99,255,.4); }
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(108,99,255,.6); }
+.btn-primary:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+.btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); }
+.btn-ghost:hover { color: var(--text); border-color: var(--accent); }
+.btn-success { background: linear-gradient(135deg, #43e97b, #38f9d7); color: #0d0f1a; }
 
-  .product-row {
-    display: flex;
-    align-items: center;
-    padding: 8px 0;
-    border-bottom: 1px solid #2a2a4a;
-    gap: 10px;
-  }
-  .product-row:last-child { border-bottom: none; }
-  .product-rank { font-size: 12px; color: #888; min-width: 20px; }
-  .product-name { flex: 1; font-size: 13px; }
-  .product-qty { font-size: 13px; font-weight: 600; color: #a78bfa; }
+/* ── P2 配置页 ── */
+.config-wrap { max-width: 720px; margin: 0 auto; padding: 32px; }
+.config-wrap h2 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+.config-wrap .subtitle { color: var(--muted); margin-bottom: 32px; font-size: 14px; }
+.config-section { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 20px; }
+.config-section h3 { font-size: 16px; font-weight: 700; margin-bottom: 4px; display: flex; align-items: center; gap: 10px; }
+.config-section .section-desc { color: var(--muted); font-size: 13px; margin-bottom: 18px; }
+.status-badge { font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+.status-badge.ok { background: rgba(67,233,123,.15); color: var(--green); }
+.status-badge.pending { background: rgba(249,202,36,.15); color: var(--yellow); }
+.steps-list { counter-reset: step; margin-bottom: 18px; }
+.step-item { counter-increment: step; display: flex; gap: 12px; margin-bottom: 12px; font-size: 13px; color: var(--muted); line-height: 1.6; }
+.step-item::before { content: counter(step); min-width: 22px; height: 22px; background: rgba(108,99,255,.2); color: var(--accent); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; margin-top: 1px; flex-shrink: 0; }
+.step-item a { color: var(--accent); text-decoration: none; }
+.step-item a:hover { text-decoration: underline; }
+.input-row { display: flex; gap: 10px; }
+.input-row input, .input-area { flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; color: var(--text); font-size: 13px; outline: none; transition: .2s; font-family: monospace; }
+.input-area { resize: vertical; min-height: 80px; }
+.input-row input:focus, .input-area:focus { border-color: var(--accent); }
+.btn-sm { padding: 9px 18px; font-size: 13px; border-radius: 8px; }
+.verify-ok { color: var(--green); font-size: 12px; margin-top: 6px; display: none; }
+.verify-ok.show { display: block; }
 
-  .empty { color: #555; font-size: 13px; text-align: center; padding: 20px; }
+/* ── P3 Dashboard ── */
+.dash-header { padding: 24px 32px 0; display: flex; align-items: center; justify-content: space-between; }
+.dash-header .shop-info { display: flex; align-items: center; gap: 12px; }
+.live-badge { background: rgba(67,233,123,.15); color: var(--green); font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 10px; border: 1px solid rgba(67,233,123,.3); }
+.agent-pills { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; margin-bottom: 20px; padding: 0 32px; }
+.agent-pill { font-size: 11px; padding: 4px 12px; border-radius: 20px; background: rgba(108,99,255,.1); border: 1px solid rgba(108,99,255,.2); color: var(--accent); display: flex; align-items: center; gap: 5px; }
+.agent-pill::before { content: '●'; color: var(--green); font-size: 8px; }
+.metrics { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; padding: 0 32px; margin-bottom: 24px; }
+.metric-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+.metric-label { color: var(--muted); font-size: 12px; margin-bottom: 8px; }
+.metric-value { font-size: 28px; font-weight: 800; }
+.metric-sub { color: var(--muted); font-size: 12px; margin-top: 4px; }
+.panels { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 0 32px; margin-bottom: 24px; }
+@media(max-width:700px){ .panels{grid-template-columns:1fr;} }
+.panel { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
+.panel h4 { font-size: 14px; font-weight: 600; margin-bottom: 14px; color: var(--muted); }
+.panel-full { grid-column: 1/-1; }
+.order-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+.order-row:last-child { border: none; }
+.empty-msg { color: var(--muted); font-size: 13px; text-align: center; padding: 20px 0; }
+.stock-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; font-size: 13px; border-bottom: 1px solid var(--border); }
+.stock-item:last-child { border: none; }
+.stock-qty { font-weight: 700; }
+.stock-qty.low { color: var(--yellow); }
+.stock-qty.critical { color: var(--red); }
+.last-update { text-align: right; font-size: 11px; color: var(--muted); padding: 0 32px 24px; }
 
-  .last-update { font-size: 11px; color: #555; text-align: right; margin-top: 8px; }
-
-  .setup-overlay {
-    position: fixed; inset: 0;
-    background: rgba(0,0,0,0.85);
-    display: flex; align-items: center; justify-content: center;
-    z-index: 100;
-  }
-  .setup-box {
-    background: #1a1a2e;
-    border: 1px solid #4a4a7a;
-    border-radius: 16px;
-    padding: 32px;
-    max-width: 440px;
-    text-align: center;
-  }
-  .setup-box .emoji { font-size: 48px; margin-bottom: 12px; }
-  .setup-box h2 { font-size: 20px; margin-bottom: 8px; }
-  .setup-box p { font-size: 13px; color: #888; line-height: 1.6; margin-bottom: 20px; }
-  .setup-box code {
-    background: #0f0f17;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 12px;
-    color: #a78bfa;
-  }
-  .btn {
-    background: #6d28d9;
-    color: white;
-    border: none;
-    padding: 10px 24px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 600;
-  }
-  .btn:hover { background: #7c3aed; }
+/* ── 通用 ── */
+.divider { height: 1px; background: var(--border); margin: 20px 0; }
 </style>
 </head>
 <body>
 
-<div class="header">
-  <div>
-    <h1>🦞 电商龙虾 Dashboard</h1>
-    <div class="sub" id="shop-name">连接中...</div>
+<!-- ════════════════════════════════════════════════
+     PAGE 1 — Agent 选择
+════════════════════════════════════════════════ -->
+<div id="page1" class="page active">
+  <div class="topbar">
+    <div class="brand">🦞 电商龙虾</div>
+    <div class="steps">
+      <div class="step-dot active" id="dot1"></div>
+      <div class="step-dot" id="dot2"></div>
+      <div class="step-dot" id="dot3"></div>
+    </div>
   </div>
-  <span class="badge" id="live-badge">LIVE</span>
-</div>
 
-<!-- 核心指标 -->
-<div class="metrics">
-  <div class="metric-card">
-    <div class="label">📦 今日订单</div>
-    <div class="value" id="m-orders">—</div>
-    <div class="sub warn" id="m-pending">—</div>
+  <div class="hero">
+    <h1>你的 AI 电商团队</h1>
+    <p>选择你需要的 Agent，它们将 24 小时替你监控市场、验证货源、自动上架、分析数据——你只需要做决策。</p>
   </div>
-  <div class="metric-card">
-    <div class="label">💰 今日销售额</div>
-    <div class="value" id="m-revenue">—</div>
-    <div class="sub" id="m-currency"></div>
-  </div>
-  <div class="metric-card">
-    <div class="label">🛒 平均客单价</div>
-    <div class="value" id="m-aov">—</div>
-  </div>
-  <div class="metric-card">
-    <div class="label">⚠️ 低库存 SKU</div>
-    <div class="value" id="m-lowstock">—</div>
-    <div class="sub warn" id="m-lowstock-sub"></div>
+
+  <div class="agents-grid" id="agentsGrid"></div>
+
+  <div class="cta-bar">
+    <button class="btn btn-primary" id="toPage2Btn" disabled onclick="goPage2()">
+      下一步：配置授权 →
+    </button>
   </div>
 </div>
 
-<div class="row-3">
-  <!-- 最新订单 -->
-  <div class="card">
-    <h3>🕐 最新订单</h3>
-    <div id="orders-list"><div class="empty">加载中...</div></div>
+<!-- ════════════════════════════════════════════════
+     PAGE 2 — API 配置
+════════════════════════════════════════════════ -->
+<div id="page2" class="page">
+  <div class="topbar">
+    <div class="brand">🦞 电商龙虾</div>
+    <div class="steps">
+      <div class="step-dot done" id="dot1b"></div>
+      <div class="step-dot active" id="dot2b"></div>
+      <div class="step-dot" id="dot3b"></div>
+    </div>
   </div>
 
-  <!-- 热销商品 -->
-  <div class="card">
-    <h3>🏆 今日热销</h3>
-    <div id="products-list"><div class="empty">加载中...</div></div>
-  </div>
-</div>
-
-<div class="row">
-  <!-- 7日销售趋势 -->
-  <div class="card">
-    <h3>📈 7日销售趋势</h3>
-    <canvas id="sales-chart" height="120"></canvas>
-  </div>
-
-  <!-- 低库存预警 -->
-  <div class="card">
-    <h3>📦 库存预警</h3>
-    <div id="stock-list"><div class="empty">加载中...</div></div>
+  <div class="config-wrap">
+    <h2>🔑 配置授权</h2>
+    <p class="subtitle">根据你选择的 Agent，填写对应平台的授权信息。每项旁边都有获取步骤。</p>
+    <div id="configSections"></div>
+    <div style="display:flex;gap:12px;margin-top:28px;">
+      <button class="btn btn-ghost btn-sm" onclick="goPage1()">← 返回</button>
+      <button class="btn btn-success" id="launchBtn" onclick="launch()" style="flex:1">
+        🚀 启动运营
+      </button>
+    </div>
   </div>
 </div>
 
-<div class="last-update">最后更新：<span id="last-update-time">—</span></div>
-
-<!-- 未配置提示 -->
-<div class="setup-overlay" id="setup-overlay" style="display:none">
-  <div class="setup-box">
-    <div class="emoji">🦞</div>
-    <h2>欢迎，电商龙虾来了！</h2>
-    <p>请先完成配置，然后在龙虾那边告诉我你的 Shopify 信息。<br>
-    或者直接运行：<br><br>
-    <code>node skills/ecommerce/scripts/connect-test.mjs</code>
-    </p>
-    <button class="btn" onclick="document.getElementById('setup-overlay').style.display='none'">我知道了</button>
+<!-- ════════════════════════════════════════════════
+     PAGE 3 — 运营 Dashboard
+════════════════════════════════════════════════ -->
+<div id="page3" class="page">
+  <div class="topbar">
+    <div class="brand">🦞 电商龙虾 <span class="live-badge" style="margin-left:8px">LIVE</span></div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <span id="shopName" style="color:var(--muted);font-size:13px"></span>
+      <button class="btn btn-ghost btn-sm" onclick="goPage2()">⚙️ 配置</button>
+    </div>
   </div>
+
+  <div class="agent-pills" id="activePills"></div>
+
+  <div class="metrics" id="metrics">
+    <div class="metric-card"><div class="metric-label">📦 今日订单</div><div class="metric-value" id="m-orders">—</div><div class="metric-sub" id="m-pending">—</div></div>
+    <div class="metric-card"><div class="metric-label">💰 今日销售额</div><div class="metric-value" id="m-rev">—</div><div class="metric-sub" id="m-currency">HKD</div></div>
+    <div class="metric-card"><div class="metric-label">🛒 平均客单价</div><div class="metric-value" id="m-aov">—</div></div>
+    <div class="metric-card"><div class="metric-label">⚠️ 低库存 SKU</div><div class="metric-value" id="m-stock">—</div><div class="metric-sub" id="m-stock-sub">—</div></div>
+  </div>
+
+  <div class="panels">
+    <div class="panel">
+      <h4>🕐 最新订单</h4>
+      <div id="recentOrders"><div class="empty-msg">今日暂无订单</div></div>
+    </div>
+    <div class="panel">
+      <h4>🏆 今日热销</h4>
+      <div id="topProducts"><div class="empty-msg">暂无销售数据</div></div>
+    </div>
+    <div class="panel panel-full">
+      <h4>📈 7日销售趋势</h4>
+      <canvas id="trendChart" height="80"></canvas>
+    </div>
+    <div class="panel">
+      <h4>📦 库存预警</h4>
+      <div id="stockList"><div class="empty-msg">所有商品库存充足 ✅</div></div>
+    </div>
+  </div>
+
+  <div class="last-update">最后更新：<span id="lastUpdate">—</span>　　<a href="?refresh=1" style="color:var(--accent);font-size:11px;text-decoration:none">🔄 刷新</a></div>
 </div>
 
 <script>
-// Dashboard 数据由 window.__ECOM_DATA__ 注入（龙虾通过 canvas eval 传入）
-// 或者展示 demo 数据
+// ═══════════════════════════════════════════════════════
+//  Agent 定义
+// ═══════════════════════════════════════════════════════
+const AGENTS = [
+  {
+    id: 'intel', icon: '🔍', name: '市场情报官',
+    desc: '持续监控 Reddit、Google Trends、竞品动态，发现需求信号，每天自动扫描并推送热门品类报告。',
+    tasks: ['Reddit 热帖追踪', 'Google Trends', '竞品新品监控'],
+    requires: ['tavily'],
+  },
+  {
+    id: 'sourcing', icon: '🏭', name: '选品验证师',
+    desc: '把需求信号翻译成"能不能卖"——自动查 1688 报价、算全链路利润、评估竞争烈度，Pass/Fail 直接告诉你。',
+    tasks: ['1688 报价抓取', '利润测算', '竞争评估'],
+    requires: ['1688'],
+  },
+  {
+    id: 'listing', icon: '🏪', name: '上架执行官',
+    desc: '接收选品结果，自动生成 SEO 标题、写商品描述、设定竞争性价格，一键同步到 Shopify。',
+    tasks: ['自动上架', 'SEO 优化', '价格策略'],
+    requires: ['shopify'],
+  },
+  {
+    id: 'traffic', icon: '📣', name: '流量侦察兵',
+    desc: '根据商品特性制定内容策略，生成小红书/抖音/Instagram 多平台文案和内容日历，持续引流。',
+    tasks: ['内容日历', '多平台文案', '爆款监控'],
+    requires: [],
+  },
+  {
+    id: 'analytics', icon: '📊', name: '数据分析师',
+    desc: '每日/周自动复盘单品盈亏、转化漏斗、库存周转，告诉你哪个品加仓、哪个品砍掉。',
+    tasks: ['单品盈亏分析', '库存周转预警', '周/月报自动发送'],
+    requires: ['shopify'],
+  },
+  {
+    id: 'ops', icon: '⚙️', name: '运营执行官',
+    desc: '自动监控新订单、触发发货提醒、生成客服话术、执行促销活动——日常琐事全包了。',
+    tasks: ['订单通知', '客服话术', '折扣码管理'],
+    requires: ['shopify'],
+  },
+];
 
-let chart = null;
+// ═══════════════════════════════════════════════════════
+//  Config 定义（配置项 + 获取步骤）
+// ═══════════════════════════════════════════════════════
+const CONFIG_DEFS = {
+  shopify: {
+    label: 'Shopify 连接',
+    icon: '🛍️',
+    desc: '上架执行官、数据分析师、运营执行官都需要此授权。',
+    fields: [
+      { key: 'shopify.shop_domain', label: '店铺域名', placeholder: 'yourstore.myshopify.com', type: 'text' },
+      { key: 'shopify.access_token', label: 'Admin API Token', placeholder: 'shpat_xxxxxxxx', type: 'password' },
+    ],
+    steps: [
+      '登录 <a href="https://admin.shopify.com" target="_blank">Shopify 后台</a>',
+      '进入 Settings → Apps and sales channels',
+      '点击 <b>Develop apps</b> → Create an app',
+      '填写 App 名称（如"电商龙虾"）→ Create app',
+      '点 <b>Configure Admin API scopes</b>，勾选：<br><code>read_products write_products read_orders write_orders read_inventory write_inventory</code>',
+      '点 <b>Install app</b> → 复制 <b>Admin API access token</b>（以 shpat_ 开头）',
+    ],
+  },
+  '1688': {
+    label: '1688 授权',
+    icon: '🏭',
+    desc: '选品验证师用于查询供应商报价、MOQ 和成交量。',
+    fields: [
+      { key: 'ali1688.cookie', label: '浏览器 Cookie', placeholder: '粘贴 1688 Cookie 字符串...', type: 'textarea' },
+    ],
+    steps: [
+      '用 Chrome 打开 <a href="https://www.1688.com" target="_blank">1688.com</a> 并登录账号',
+      '按 <b>F12</b> 打开开发者工具 → 点击 <b>Console</b> 标签',
+      '在控制台输入以下命令并回车：<br><code style="background:rgba(0,0,0,.3);padding:3px 8px;border-radius:4px">copy(document.cookie)</code>',
+      '控制台显示 <code>undefined</code> 是正常的（已复制到剪贴板）',
+      '回到此页面，在下方输入框直接 <b>Ctrl+V</b> 粘贴',
+    ],
+  },
+  tavily: {
+    label: 'Tavily 搜索',
+    icon: '🔍',
+    desc: '市场情报官用于搜索 Reddit 热帖、Google Trends 数据和竞品信息。',
+    fields: [
+      { key: 'tavily.api_key', label: 'Tavily API Key', placeholder: 'tvly-xxxxxxxx', type: 'password' },
+    ],
+    steps: [
+      '访问 <a href="https://tavily.com" target="_blank">tavily.com</a> → 免费注册',
+      '免费套餐每月 1000 次请求，够日常选品用',
+      '登录后进入 Dashboard → 复制 <b>API Key</b>（以 tvly- 开头）',
+    ],
+  },
+};
 
-function renderDashboard(data) {
-  if (!data) {
-    document.getElementById('setup-overlay').style.display = 'flex';
+// ═══════════════════════════════════════════════════════
+//  State
+// ═══════════════════════════════════════════════════════
+let selectedAgents = new Set(JSON.parse(localStorage.getItem('ecom_agents') || '["listing","analytics","ops"]'));
+let launched = localStorage.getItem('ecom_launched') === '1';
+
+// ═══════════════════════════════════════════════════════
+//  P1 — 渲染 Agent 卡片
+// ═══════════════════════════════════════════════════════
+function renderAgents() {
+  const grid = document.getElementById('agentsGrid');
+  grid.innerHTML = AGENTS.map(a => `
+    <div class="agent-card ${selectedAgents.has(a.id) ? 'selected' : ''}" onclick="toggleAgent('${a.id}',event)">
+      <div class="toggle">
+        <input type="checkbox" id="chk_${a.id}" ${selectedAgents.has(a.id) ? 'checked' : ''} onchange="toggleAgent('${a.id}',event)">
+        <label for="chk_${a.id}"></label>
+      </div>
+      <div class="agent-icon">${a.icon}</div>
+      <div class="agent-name">${a.name}</div>
+      <div class="agent-desc">${a.desc}</div>
+      <div class="agent-tasks">
+        ${a.tasks.map(t => `<span class="tag">${t}</span>`).join('')}
+        ${a.requires.map(r => `<span class="tag req">需要 ${CONFIG_DEFS[r]?.label || r}</span>`).join('')}
+      </div>
+    </div>
+  `).join('');
+  updateCTA();
+}
+
+function toggleAgent(id, e) {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'LABEL') {
+    // 让 checkbox 先处理
+    setTimeout(() => {
+      const chk = document.getElementById('chk_' + id);
+      if (chk.checked) selectedAgents.add(id); else selectedAgents.delete(id);
+      document.querySelector(`.agent-card:has(#chk_${id})`).classList.toggle('selected', chk.checked);
+      updateCTA();
+    }, 0);
     return;
   }
+  // 点卡片其他区域
+  if (selectedAgents.has(id)) selectedAgents.delete(id);
+  else selectedAgents.add(id);
+  renderAgents();
+}
 
+function updateCTA() {
+  document.getElementById('toPage2Btn').disabled = selectedAgents.size === 0;
+  localStorage.setItem('ecom_agents', JSON.stringify([...selectedAgents]));
+}
+
+// ═══════════════════════════════════════════════════════
+//  P2 — 渲染配置项
+// ═══════════════════════════════════════════════════════
+function renderConfig() {
+  // 找出所选 agents 需要的所有配置
+  const needed = new Set();
+  needed.add('shopify'); // 基础必须
+  for (const id of selectedAgents) {
+    const a = AGENTS.find(x => x.id === id);
+    a.requires.forEach(r => needed.add(r));
+  }
+
+  const wrap = document.getElementById('configSections');
+  wrap.innerHTML = [...needed].map(key => {
+    const def = CONFIG_DEFS[key];
+    if (!def) return '';
+    return `
+      <div class="config-section">
+        <h3>${def.icon} ${def.label} <span class="status-badge pending" id="badge_${key}">待配置</span></h3>
+        <div class="section-desc">${def.desc}</div>
+        <div class="steps-list">
+          ${def.steps.map(s => `<div class="step-item">${s}</div>`).join('')}
+        </div>
+        ${def.fields.map(f => f.type === 'textarea' ? `
+          <textarea class="input-area" id="field_${f.key}" placeholder="${f.placeholder}"
+            oninput="fieldChanged('${key}','${f.key}',this.value)"
+          ></textarea>
+        ` : `
+          <div class="input-row">
+            <input type="${f.type}" id="field_${f.key}" placeholder="${f.placeholder}"
+              oninput="fieldChanged('${key}','${f.key}',this.value)" autocomplete="off" />
+          </div>
+        `).join('')}
+        <div class="verify-ok" id="ok_${key}">✅ 已配置</div>
+      </div>
+    `;
+  }).join('');
+
+  // 从服务器拿已有配置
+  fetch('/api/config').then(r => r.json()).then(cfg => {
+    for (const key of needed) {
+      const def = CONFIG_DEFS[key];
+      if (!def) continue;
+      let allSet = true;
+      for (const f of def.fields) {
+        const parts = f.key.split('.');
+        const val = parts.reduce((o, k) => o?.[k], cfg);
+        const el = document.getElementById('field_' + f.key);
+        if (!el) continue;
+        if (val && val !== true) {
+          el.value = val;
+        } else if (cfg?.[parts[0]]?.cookie_set && f.key.includes('cookie')) {
+          el.value = '(已保存，如需更新请重新粘贴)';
+        } else {
+          allSet = false;
+        }
+      }
+      if (allSet) markConfigured(key);
+    }
+  }).catch(() => {});
+}
+
+const configState = {};
+
+function fieldChanged(section, fieldKey, val) {
+  if (!configState[section]) configState[section] = {};
+  const parts = fieldKey.split('.');
+  configState[section][parts[parts.length - 1]] = val;
+  if (val.trim()) markConfigured(section);
+}
+
+function markConfigured(key) {
+  const badge = document.getElementById('badge_' + key);
+  const ok = document.getElementById('ok_' + key);
+  if (badge) { badge.textContent = '已配置 ✓'; badge.className = 'status-badge ok'; }
+  if (ok) ok.classList.add('show');
+}
+
+async function launch() {
+  const btn = document.getElementById('launchBtn');
+  btn.textContent = '保存中...'; btn.disabled = true;
+
+  // 收集所有字段值
+  const payload = {};
+  document.querySelectorAll('[id^="field_"]').forEach(el => {
+    const key = el.id.replace('field_', '');
+    const parts = key.split('.');
+    if (el.value.trim() && !el.value.includes('(已保存')) {
+      if (!payload[parts[0]]) payload[parts[0]] = {};
+      payload[parts[0]][parts[1]] = el.value.trim();
+    }
+  });
+
+  try {
+    if (Object.keys(payload).length > 0) {
+      await fetch('/api/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    }
+    localStorage.setItem('ecom_launched', '1');
+    launched = true;
+    goPage3();
+  } catch (e) {
+    btn.textContent = '保存失败，重试';
+    btn.disabled = false;
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  P3 — Dashboard 数据
+// ═══════════════════════════════════════════════════════
+let chartInstance = null;
+
+function renderDashboard(data) {
   const { summary, shop, lowStock, weeklyTrend } = data;
 
   // 店铺名
-  document.getElementById('shop-name').textContent = shop?.name || 'My Shop';
+  document.getElementById('shopName').textContent = shop?.name || '';
 
-  // 核心指标
-  document.getElementById('m-orders').textContent = summary.totalOrders;
-  document.getElementById('m-pending').textContent = `待发货 ${summary.pendingCount} 单`;
-  document.getElementById('m-revenue').textContent = summary.totalRevenue;
-  document.getElementById('m-currency').textContent = summary.currency;
-  document.getElementById('m-aov').textContent = summary.avgOrderValue;
-  document.getElementById('m-lowstock').textContent = lowStock?.length ?? 0;
-  document.getElementById('m-lowstock-sub').textContent = lowStock?.length > 0 ? '需要补货' : '库存充足';
+  // 激活的 agent pills
+  const pills = document.getElementById('activePills');
+  pills.innerHTML = [...selectedAgents].map(id => {
+    const a = AGENTS.find(x => x.id === id);
+    return `<div class="agent-pill">${a.icon} ${a.name}</div>`;
+  }).join('');
 
-  // 最新订单
-  const ordersList = document.getElementById('orders-list');
-  if (summary.allOrders && summary.allOrders.length > 0) {
-    ordersList.innerHTML = summary.allOrders.slice(0, 6).map(o => {
-      const items = (o.line_items || []).map(i => `${i.title}×${i.quantity}`).join('、');
-      const name = o.shipping_address?.name || o.billing_address?.name || o.email || '买家';
-      const statusClass = o.financial_status === 'paid' ? 'status-paid' : 'status-pending';
-      const statusText = o.financial_status === 'paid' ? '已付款' : o.financial_status;
-      return `
+  // 指标
+  document.getElementById('m-orders').textContent = summary.totalOrders ?? 0;
+  document.getElementById('m-pending').textContent = `待发货 ${summary.pendingOrders ?? 0} 单`;
+  const rev = parseFloat(summary.totalRevenue || 0).toFixed(2);
+  document.getElementById('m-rev').textContent = rev;
+  document.getElementById('m-currency').textContent = shop?.currency || 'HKD';
+  const aov = summary.totalOrders > 0 ? (summary.totalRevenue / summary.totalOrders).toFixed(2) : '0.00';
+  document.getElementById('m-aov').textContent = aov;
+  document.getElementById('m-stock').textContent = lowStock?.length ?? 0;
+  document.getElementById('m-stock-sub').textContent = lowStock?.length ? '需要补货' : '库存充足';
+
+  // 订单列表
+  const orders = summary.orders || [];
+  document.getElementById('recentOrders').innerHTML = orders.length
+    ? orders.slice(0,5).map(o => `
         <div class="order-row">
-          <div class="order-num">#${o.order_number}</div>
-          <div class="order-info">
-            <div class="order-name">${name}</div>
-            <div class="order-items">${items.substring(0, 50)}${items.length > 50 ? '...' : ''}</div>
-          </div>
-          <div class="order-amount">${o.currency} ${o.total_price}</div>
-          <span class="status-badge ${statusClass}">${statusText}</span>
-        </div>`;
-    }).join('');
-  } else {
-    ordersList.innerHTML = '<div class="empty">今日暂无订单</div>';
-  }
+          <span>#${o.order_number} ${o.customer?.first_name || '匿名'}</span>
+          <span style="color:var(--green)">${parseFloat(o.total_price||0).toFixed(2)} ${o.currency||''}</span>
+        </div>`).join('')
+    : '<div class="empty-msg">今日暂无订单</div>';
 
-  // 热销商品
-  const productsList = document.getElementById('products-list');
-  if (summary.topProducts && summary.topProducts.length > 0) {
-    productsList.innerHTML = summary.topProducts.map((p, i) => `
-      <div class="product-row">
-        <div class="product-rank">${['🥇','🥈','🥉','4','5'][i]}</div>
-        <div class="product-name">${p.name}</div>
-        <div class="product-qty">×${p.qty}</div>
-      </div>`).join('');
-  } else {
-    productsList.innerHTML = '<div class="empty">暂无销售数据</div>';
-  }
+  // 热销
+  const tops = summary.topProducts || [];
+  document.getElementById('topProducts').innerHTML = tops.length
+    ? tops.slice(0,5).map((p,i) => `
+        <div class="order-row">
+          <span>${['🥇','🥈','🥉','4️⃣','5️⃣'][i]} ${p.title?.slice(0,20) || p.name || '商品'}</span>
+          <span style="color:var(--yellow)">${p.quantity || p.qty || 0} 件</span>
+        </div>`).join('')
+    : '<div class="empty-msg">暂无销售数据</div>';
 
-  // 低库存
-  const stockList = document.getElementById('stock-list');
-  if (lowStock && lowStock.length > 0) {
-    stockList.innerHTML = lowStock.slice(0, 6).map(p => {
-      const cls = p.quantity <= 3 ? 'stock-critical' : p.quantity <= 10 ? 'stock-low' : 'stock-ok';
-      const name = p.productTitle + (p.variantTitle !== 'Default Title' ? ` (${p.variantTitle})` : '');
-      return `<div class="stock-row">
-        <div class="stock-name">${name}</div>
-        <div class="stock-qty ${cls}">${p.quantity}</div>
-      </div>`;
-    }).join('');
-  } else {
-    stockList.innerHTML = '<div class="empty">✅ 所有商品库存充足</div>';
-  }
+  // 库存预警
+  document.getElementById('stockList').innerHTML = lowStock?.length
+    ? lowStock.map(p => `
+        <div class="stock-item">
+          <span>${p.title?.slice(0,24)}</span>
+          <span class="stock-qty ${p.inventory_quantity <= 3 ? 'critical' : 'low'}">${p.inventory_quantity} 件</span>
+        </div>`).join('')
+    : '<div class="empty-msg">所有商品库存充足 ✅</div>';
 
-  // 7日趋势图
-  if (weeklyTrend) {
-    const ctx = document.getElementById('sales-chart').getContext('2d');
-    if (chart) chart.destroy();
-    chart = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: weeklyTrend.map(d => d.date.slice(5)),
-        datasets: [{
-          label: '销售额',
-          data: weeklyTrend.map(d => d.revenue),
-          borderColor: '#a78bfa',
-          backgroundColor: 'rgba(167,139,250,0.1)',
-          borderWidth: 2,
-          tension: 0.4,
-          fill: true,
-          pointRadius: 4,
-          pointBackgroundColor: '#a78bfa'
-        }]
-      },
-      options: {
-        responsive: true,
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { grid: { color: '#2a2a4a' }, ticks: { color: '#888' } },
-          y: { grid: { color: '#2a2a4a' }, ticks: { color: '#888' } }
-        }
+  // 趋势图
+  const labels = weeklyTrend?.map(d => d.date?.slice(5)) || [];
+  const revs = weeklyTrend?.map(d => d.revenue || 0) || [];
+  if (chartInstance) chartInstance.destroy();
+  const ctx = document.getElementById('trendChart').getContext('2d');
+  chartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: '销售额',
+        data: revs,
+        borderColor: '#6c63ff',
+        backgroundColor: 'rgba(108,99,255,.1)',
+        borderWidth: 2,
+        pointBackgroundColor: '#6c63ff',
+        tension: 0.4,
+        fill: true,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,.05)' }, ticks: { color: '#6b7db3' } },
+        y: { grid: { color: 'rgba(255,255,255,.05)' }, ticks: { color: '#6b7db3' }, beginAtZero: true },
       }
-    });
-  }
+    }
+  });
 
-  document.getElementById('last-update-time').textContent = new Date().toLocaleString('zh-CN');
+  document.getElementById('lastUpdate').textContent = new Date().toLocaleString('zh-CN');
 }
 
-// 等待数据注入
-function waitForData() {
-  if (window.__ECOM_DATA__) {
-    renderDashboard(window.__ECOM_DATA__);
-  } else {
-    // 5秒后没有数据就显示提示
-    setTimeout(() => {
-      if (!window.__ECOM_DATA__) {
-        document.getElementById('setup-overlay').style.display = 'flex';
-        document.getElementById('shop-name').textContent = '未连接';
-      }
-    }, 5000);
-  }
+// ═══════════════════════════════════════════════════════
+//  页面切换
+// ═══════════════════════════════════════════════════════
+function showPage(n) {
+  document.querySelectorAll('.page').forEach((p, i) => p.classList.toggle('active', i === n - 1));
+  localStorage.setItem('ecom_page', n);
 }
 
-// 提供外部注入接口
-window.loadEcomData = renderDashboard;
-waitForData();
+function goPage1() { showPage(1); }
+
+function goPage2() {
+  showPage(2);
+  renderConfig();
+}
+
+function goPage3() {
+  showPage(3);
+  fetch('/api/data').then(r => r.json()).then(renderDashboard).catch(() => {
+    // 如果数据加载失败，展示空状态
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+//  初始化
+// ═══════════════════════════════════════════════════════
+function init() {
+  renderAgents();
+  // 如果已启动过，直接跳 P3
+  if (launched) { goPage3(); return; }
+  // 否则从 P1 开始
+  showPage(1);
+}
+
+// 服务器注入数据后自动跳 P3
+function loadEcomData(data) {
+  if (!launched) return;
+  renderDashboard(data);
+}
+
+init();
 </script>
 </body>
 </html>

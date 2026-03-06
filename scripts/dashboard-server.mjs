@@ -8,10 +8,12 @@
  */
 
 import http from 'http';
-import { readFileSync } from 'fs';
+import { readFileSync, writeFileSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { getDailySummary, getLowStockProducts, getShopInfo, getOrders } from '../connectors/shopify.js';
+
+const CONFIG_PATH = join(dirname(fileURLToPath(import.meta.url)), '..', 'config.json');
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = 3458;
@@ -91,6 +93,46 @@ const server = http.createServer(async (req, res) => {
       });
       res.end(html);
       return;
+    }
+
+    // ── Config API ───────────────────────────────────────────
+    if (url.pathname === '/api/config' && req.method === 'GET') {
+      const cfg = JSON.parse(readFileSync(CONFIG_PATH, 'utf8'));
+      // 脱敏：token 只返回前8位
+      const safe = JSON.parse(JSON.stringify(cfg));
+      if (safe.shopify?.access_token) safe.shopify.access_token_masked = safe.shopify.access_token.slice(0,8)+'...';
+      if (safe.ali1688?.cookie) safe.ali1688.cookie_set = true, delete safe.ali1688.cookie;
+      res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
+      res.end(JSON.stringify(safe));
+      return;
+    }
+
+    if (url.pathname === '/api/config' && req.method === 'POST') {
+      let body = '';
+      req.on('data', c => body += c);
+      req.on('end', () => {
+        try {
+          const updates = JSON.parse(body);
+          const cfg = JSON.parse(readFileSync(CONFIG_PATH, 'utf8'));
+          // 深度合并（只允许白名单字段）
+          const allowed = ['shopify','ali1688','notifications','alerts','report','tavily'];
+          for (const key of allowed) {
+            if (updates[key]) cfg[key] = { ...cfg[key], ...updates[key] };
+          }
+          writeFileSync(CONFIG_PATH, JSON.stringify(cfg, null, 2));
+          res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+          res.end(JSON.stringify({ ok: true }));
+        } catch (e) {
+          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ ok: false, error: e.message }));
+        }
+      });
+      return;
+    }
+
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204, { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Methods': 'GET,POST', 'Access-Control-Allow-Headers': 'Content-Type' });
+      res.end(); return;
     }
 
     if (url.pathname === '/api/data') {
