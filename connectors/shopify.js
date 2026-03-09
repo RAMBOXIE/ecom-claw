@@ -496,3 +496,49 @@ export async function addVariant(productId, variantData) {
   const data = await shopifyPost(`/products/${productId}/variants.json`, { variant: variantData });
   return data.variant;
 }
+
+// ─── SEO / GEO 支持 ─────────────────────────────────────────
+
+/** 通用 PUT 包装（供模块层调用） */
+export async function shopifyPatch(endpoint, body) {
+  return shopifyPut(endpoint, body);
+}
+
+/** 获取商品所有 Metafields */
+export async function getProductMetafields(productId) {
+  const data = await shopifyFetch(`/products/${productId}/metafields.json`);
+  return data.metafields || [];
+}
+
+/**
+ * 创建或更新 Metafield（upsert）
+ * @param {string|number} productId
+ * @param {{ namespace, key, value, type }} metafield
+ */
+export async function upsertProductMetafield(productId, { namespace, key, value, type = 'single_line_text_field' }) {
+  // 先查是否已存在
+  const existing = await getProductMetafields(productId);
+  const found = existing.find(m => m.namespace === namespace && m.key === key);
+
+  if (found) {
+    // 更新
+    const data = await shopifyPut(`/metafields/${found.id}.json`, {
+      metafield: { id: found.id, value, type }
+    });
+    return data.metafield;
+  } else {
+    // 新建
+    const data = await shopifyPost(`/products/${productId}/metafields.json`, {
+      metafield: { namespace, key, value, type }
+    });
+    return data.metafield;
+  }
+}
+
+/** 更新商品图片 Alt 文本 */
+export async function updateImageAlt(productId, imageId, alt) {
+  const data = await shopifyPut(`/products/${productId}/images/${imageId}.json`, {
+    image: { id: parseInt(imageId), alt }
+  });
+  return data.image;
+}
