@@ -324,7 +324,65 @@ pending → running → awaiting_approval → approved/rejected → completed/fa
 - 自动从 `config.json` 读凭证
 - Shopify 429 自动等待 Retry-After 重试（最多3次）
 
-### 5.2 youzan.js
+### 5.2 woocommerce.js
+
+**职责：** 封装 WooCommerce REST API（`/wp-json/wc/v3/`），接口与 shopify.js 保持一致。
+
+**适用场景：** WordPress 独立站，装有 WooCommerce 插件。
+
+**认证方式：** Consumer Key + Consumer Secret（Basic Auth），在 WooCommerce → 设置 → 高级 → REST API 生成。
+
+**配置字段：**
+```json
+{
+  "woocommerce": {
+    "site_url": "https://yourstore.com",
+    "consumer_key": "ck_xxxxxxxxxxxx",
+    "consumer_secret": "cs_xxxxxxxxxxxx",
+    "version": "v3"
+  }
+}
+```
+
+**导出函数（与 shopify.js 保持接口对齐）：**
+
+| 函数 | WooCommerce 端点 | 说明 |
+|------|----------------|------|
+| `getRecentOrders(hoursAgo)` | `GET /orders?after=...` | 最近N小时订单 |
+| `getOrders(params)` | `GET /orders` | 通用订单查询 |
+| `getOrderById(id)` | `GET /orders/{id}` | 单条订单详情 |
+| `fulfillOrder(orderId, tracking, company)` | `PUT /orders/{id}` + `POST /orders/{id}/notes` | 标记发货（status=completed + 备注物流） |
+| `refundOrder(orderId, amount, reason)` | `POST /orders/{id}/refunds` | 退款 |
+| `getProducts(params)` | `GET /products` | 商品列表 |
+| `getProductById(id)` | `GET /products/{id}` | 商品详情 |
+| `createProduct(data)` | `POST /products` | 创建商品 |
+| `updateProduct(id, data)` | `PUT /products/{id}` | 更新商品 |
+| `getVariants(productId)` | `GET /products/{id}/variations` | 获取变体 |
+| `getInventory(productId)` | 从 product.stock_quantity | 库存查询 |
+| `updateInventory(productId, qty)` | `PUT /products/{id}` | 更新库存 |
+| `getCustomers(params)` | `GET /customers` | 客户列表 |
+| `uploadImage(productId, imageUrl)` | `PUT /products/{id}` images[] | 图片关联 |
+
+**与 Shopify 的主要差异：**
+
+| 项目 | Shopify | WooCommerce |
+|------|---------|-------------|
+| 认证 | `X-Shopify-Access-Token` header | Basic Auth (key:secret) |
+| 分页 | `page_info` cursor | `page` + `per_page` 参数 |
+| 库存 | 独立 inventory_level API | 直接在 product/variation 上 |
+| 图片上传 | base64 attachment | 外部 URL 或 WordPress 媒体库 ID |
+| 订单状态 | pending/paid/fulfilled | pending/processing/completed/refunded |
+| Webhook | Shopify Partners 配置 | WooCommerce 后台直接配置 |
+| 速率限制 | 2req/s（REST），40/s（GraphQL） | 无官方限制，依服务器性能 |
+
+**注意：**
+- WooCommerce API 端点取决于 WordPress 是否开启固定链接（Permalink），需确认 `/wp-json/wc/v3/` 可访问
+- HTTPS 是必须的（不接受 HTTP）
+- 图片上传推荐使用 WordPress 媒体库 REST API（`/wp-json/wp/v2/media`），再将 media ID 关联到商品
+
+---
+
+### 5.3 youzan.js
 框架已建，待填 access_token 后激活。
 预期导出：`getYouzanOrders / getYouzanProducts / getYouzanInventory`
 

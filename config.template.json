@@ -6,6 +6,13 @@
     "client_id": "",
     "client_secret": ""
   },
+  "woocommerce": {
+    "site_url": "https://your-wordpress-store.com",
+    "consumer_key": "ck_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "consumer_secret": "cs_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "version": "v3",
+    "_setup_guide": "WooCommerce 后台 → 设置 → 高级 → REST API → 添加密钥（读写权限）"
+  },
   "youzan": {
     "access_token": "your_youzan_access_token_here",
     "client_id": "",
@@ -13,7 +20,7 @@
     "shop_id": ""
   },
   "notifications": {
-    "telegram_chat_id": "1196749626"
+    "telegram_chat_id": "YOUR_TELEGRAM_ID"
   },
   "alerts": {
     "low_stock_threshold": 10,
@@ -21,7 +28,17 @@
   },
   "report": {
     "daily_report_hour": 8,
-    "timezone": "Asia/Shanghai"
+    "timezone": "Asia/Hong_Kong"
+  },
+  "approval": {
+    "required_for": ["price_change", "refund", "fulfill", "bulk_publish"],
+    "approver_telegram_id": ""
+  },
+  "business": {
+    "type": "domestic|crossborder|both",
+    "template": "A|B|C",
+    "category": "商品品类",
+    "brand_tone": "专业|活泼|温馨"
   },
   "webhooks": {
     "secret": ""

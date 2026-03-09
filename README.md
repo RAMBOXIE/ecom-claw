@@ -99,9 +99,15 @@
 | 平台 | 状态 | 备注 |
 |------|------|------|
 | Shopify | ✅ 已接入 | 订单/商品/库存/客户全覆盖 |
+| WooCommerce | 🚧 v2.0 开发中 | WordPress 独立站，REST API 接入 |
 | 有赞 | ⏳ 待配置 | 框架已建，需填 access_token |
-| WooCommerce | 🔜 Phase 4 | — |
-| 淘宝/天猫 | 🔜 规划中 | 需 TOP API |
+| 淘宝/天猫 | 🔜 v3.0 规划中 | 需 TOP API |
+| Amazon | 🔜 v3.0 规划中 | SP-API |
+
+> **为什么 WooCommerce 和 Shopify 同优先级？**
+> WooCommerce 是全球装机量最大的电商插件，WordPress 独立站占全球电商 30%+。
+> 其 REST API（`/wp-json/wc/v3/`）结构与 Shopify 相近，connector 层复用成本低，
+> 大部分脚本（日报/订单/库存/商品）可直接复用，只换底层 connector。
 
 ---
 
@@ -181,6 +187,7 @@ ecommerce/
 | 版本 | 日期 | 说明 |
 |------|------|------|
 | v1.0 | 2026-03-06 | 首版，Shopify 脚本集 + 5个 Cron |
+| v2.0 | 2026-03-13 | MVP 目标：四大模块 + WooCommerce + Dashboard + 审批审计 |
 | v2.0 | 2026-03-13 | MVP 目标：四大模块 + Dashboard + 审批审计 |
 
 ---

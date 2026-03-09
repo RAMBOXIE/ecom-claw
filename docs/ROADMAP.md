@@ -38,23 +38,23 @@
 
 ---
 
-### Day 1（3/9）：修基础 + 搭框架
+### Day 1（3/9）：修基础 + 搭框架 ✅
 
-**任务 1：修复 Cron HTTP 403（P0）**
-- 排查 OpenClaw isolated session 权限配置
-- 验证：手动触发一次订单通知，确认不再 403
-- 验收：5个 Cron 全部恢复正常运行
+**任务 1：修复 Cron HTTP 403** ✅ 已自愈（3月7日临时故障，现已恢复）
 
-**任务 2：GitHub push**
-- 建 `RAMBOXIE/ecom-claw` repo
-- 推送当前代码（v1.0 + 文档更新）
-- 设置 .gitignore（config.json 不入库）
+**任务 2：GitHub push** ✅ 已完成（commit 41ed333）
 
 **任务 3：重构目录结构**
 - 新建 `modules/` 目录（selection / launch / community / ops）
 - 新建 `audit/` 目录（审计日志）
 - 新建 `sop/` 目录（SOP 模板）
 - 现有 scripts/ 不动，模块是对脚本的更高层封装
+
+**任务 4：WooCommerce connector 框架** ← 新增
+- 新建 `connectors/woocommerce.js`
+- 接口与 shopify.js 对齐（相同函数签名）
+- 更新 `config.template.json` 加入 WooCommerce 配置项
+- 更新 `setup.mjs` 支持 WooCommerce 引导
 
 ---
 
@@ -179,15 +179,18 @@
 
 ## v3.0 中期规划（3月后）
 
-- [ ] WooCommerce 接入
-- [ ] 淘宝/天猫 TOP API
+### 平台扩展
+- [ ] 淘宝/天猫 TOP API 接入
+- [ ] Amazon SP-API 接入
 - [ ] 1688 热销榜自动采集（Chrome Relay）
-- [ ] 定时促销（自动改价/恢复）
-- [ ] 多语言商品页生成
-- [ ] 邮件营销（Klaviyo）
-- [ ] 评价监控（Judge.me）
-- [ ] Webhook 替代订单轮询
-- [ ] 多店铺并行管理
+
+### 功能增强
+- [ ] 定时促销（自动改价/恢复原价）
+- [ ] 多语言商品页生成（中→英/日/韩）
+- [ ] 邮件营销集成（Klaviyo）
+- [ ] 评价监控（Judge.me / WooCommerce 原生评论）
+- [ ] Webhook 替代订单轮询（需公网 IP）
+- [ ] 多店铺并行管理（Shopify + WooCommerce 同时跑）
 
 ## v4.0 长期愿景
 
@@ -209,3 +212,4 @@
 | 2026-03-09 | 项目升级为全生命周期经营助手 | 原定位太窄，产品价值未充分体现 |
 | 2026-03-09 | API-first，不做 RPA 主链路 | 浏览器自动化维护成本高、风控风险大 |
 | 2026-03-09 | 单主控 + 多模块，不做多 Agent | MVP 阶段需要稳定性和可审计性 |
+| 2026-03-09 | WooCommerce 与 Shopify 同优先级（v2.0） | 全球独立站 30%+ 跑在 WordPress 上，REST API 接入成本低，connector 层可复用大部分脚本 |
