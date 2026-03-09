@@ -6,3 +6,7 @@ scripts/.last-order-check.json
 bulk-import-errors.csv
 node_modules/
 .env
+# 运行时生成的审批/审计数据
+audit/*.jsonl
+audit/pending-approvals.json
+audit/audit.log
