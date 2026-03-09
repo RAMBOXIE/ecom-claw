@@ -13,8 +13,6 @@ import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const CONFIG_PATH = join(__dirname, '..', 'config.json');
-const OPENCLAW_CONFIG_PATH = 'C:\\Users\\Administrator\\AppData\\Roaming\\openclaw\\openclaw.json';
-
 function loadConfig() {
   if (!existsSync(CONFIG_PATH)) throw new Error('config.json not found');
   return JSON.parse(readFileSync(CONFIG_PATH, 'utf8'));
@@ -22,9 +20,12 @@ function loadConfig() {
 
 function loadOpenClawConfig() {
   const paths = [
-    OPENCLAW_CONFIG_PATH,
+    // Windows: %USERPROFILE%\.openclaw\openclaw.json  ← 正确位置
+    join(process.env.USERPROFILE || '', '.openclaw', 'openclaw.json'),
+    // macOS/Linux: ~/.openclaw/openclaw.json
+    join(process.env.HOME || '', '.openclaw', 'openclaw.json'),
+    // 旧路径兜底
     join(process.env.APPDATA || '', 'openclaw', 'openclaw.json'),
-    join(process.env.USERPROFILE || '', '.openclaw', 'openclaw.json')
   ];
   for (const p of paths) {
     if (existsSync(p)) return JSON.parse(readFileSync(p, 'utf8'));
@@ -57,19 +58,23 @@ export async function sendApprovalNotification(text, approvalId) {
     return null;
   }
 
+  // 通过 /tools/invoke 调用 message 工具
   const payload = {
-    action: 'send',
-    channel: 'telegram',
-    target: String(chatId),
-    message: text,
-    buttons: JSON.stringify([[
-      { text: '✅ 批准', callback_data: `approve:${approvalId}` },
-      { text: '❌ 拒绝', callback_data: `reject:${approvalId}` }
-    ]])
+    tool: 'message',
+    args: {
+      action: 'send',
+      channel: 'telegram',
+      target: String(chatId),
+      message: text,
+      buttons: [[
+        { text: '✅ 批准', callback_data: `approve:${approvalId}` },
+        { text: '❌ 拒绝', callback_data: `reject:${approvalId}` }
+      ]]
+    }
   };
 
   try {
-    const res = await fetch(`http://localhost:${gatewayPort}/api/message`, {
+    const res = await fetch(`http://localhost:${gatewayPort}/tools/invoke`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -85,7 +90,8 @@ export async function sendApprovalNotification(text, approvalId) {
     }
 
     const data = await res.json();
-    return data?.messageId || null;
+    // /tools/invoke 响应结构：{ ok, result: { details: { messageId } } }
+    return data?.result?.details?.messageId || data?.result?.messageId || data?.messageId || null;
   } catch (e) {
     // 网关调用失败，降级：打印到 stdout
     console.log('\n📨 APPROVAL_NOTIFY');
