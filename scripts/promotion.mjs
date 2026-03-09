@@ -10,6 +10,8 @@
  */
 
 import { getProducts, getProduct, updateVariantPrice, bulkUpdatePrices } from '../connectors/shopify.js';
+import { requestApproval } from '../audit/approval.mjs';
+import { writeAuditLog } from '../audit/logger.mjs';
 import { readFileSync, writeFileSync, existsSync } from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
@@ -145,14 +147,52 @@ async function apply() {
   const products = await getTargetProducts(productIds);
   const items = calculateDiscountedPrices(products, discount);
 
-  if (!confirmed) {
+  const force = hasFlag('--force'); // 审批系统批准后使用
+
+  if (!confirmed && !force) {
     console.log(`⚠️  即将对 ${items.length} 个 SKU 应用 ${(discount * 10).toFixed(1)}折`);
-    console.log('   添加 --confirm 参数确认执行');
+    console.log('   添加 --confirm 发起审批请求');
     process.stdout.write('\n__JSON_OUTPUT__\n' + JSON.stringify({ action: 'apply', preview: true, skuCount: items.length }) + '\n');
     return;
   }
 
-  console.log(`🦞 应用折扣 — ${(discount * 10).toFixed(1)}折\n`);
+  // ── 审批流：--confirm 触发审批请求 ──────────────────────
+  if (confirmed && !force) {
+    const discountLabel = `${(discount * 10).toFixed(1)}折`;
+    const productIdsPart = productIds ? ` --product-ids ${productIds}` : '';
+    const command = `node scripts/promotion.mjs apply --discount ${discountStr}${productIdsPart} --force`;
+
+    console.log(`📨 发起审批请求...`);
+    const approval = await requestApproval({
+      action: 'bulk_price',
+      description: `全店批量改价：${discountLabel}，影响 ${products.length} 个商品，${items.length} 个 SKU`,
+      params: { discount, productIds, skuCount: items.length },
+      command,
+      preview: {
+        '折扣率': discountLabel,
+        '影响商品数': `${products.length} 个`,
+        '影响SKU数': `${items.length} 个`,
+        '示例': items.slice(0,3).map(i => `${i.productTitle} ${i.originalPrice}→${i.discountedPrice}`).join(' | ')
+      }
+    });
+
+    console.log(`\n⏳ 审批请求已创建，等待确认`);
+    console.log(`   审批 ID：${approval.id.slice(0,8)}`);
+    console.log(`   Telegram 已推送通知，点击「✅ 批准」执行改价`);
+    console.log(`   或手动批准：node audit/approval.mjs approve --id ${approval.id.slice(0,8)}`);
+
+    process.stdout.write('\n__JSON_OUTPUT__\n' + JSON.stringify({
+      action: 'apply',
+      status: 'pending_approval',
+      approvalId: approval.id,
+      discount,
+      skuCount: items.length
+    }) + '\n');
+    return;
+  }
+
+  // ── --force：审批通过后执行 ──────────────────────────────
+  console.log(`🦞 应用折扣 — ${(discount * 10).toFixed(1)}折（审批已通过）\n`);
 
   // 备份原价
   const backup = items.map(item => ({
@@ -167,10 +207,11 @@ async function apply() {
   const updates = items.map(item => ({
     variantId: item.variantId,
     price: item.discountedPrice,
-    comparePrice: item.originalPrice // 设置划线价
+    comparePrice: item.originalPrice
   }));
 
   await bulkUpdatePrices(updates);
+  await writeAuditLog({ action: 'price_change', discount, skuCount: items.length, canRollback: true });
 
   console.log(`✅ 折扣已应用！共更新 ${items.length} 个 SKU`);
 
@@ -185,6 +226,7 @@ async function apply() {
 
 async function restore() {
   const confirmed = hasFlag('--confirm');
+  const force = hasFlag('--force');
 
   if (!existsSync(PRICE_BACKUP_FILE)) {
     console.error('❌ 未找到价格备份文件（.price-backup.json），无法恢复');
@@ -193,34 +235,37 @@ async function restore() {
 
   const backup = JSON.parse(readFileSync(PRICE_BACKUP_FILE, 'utf8'));
 
-  if (!confirmed) {
-    console.log(`⚠️  即将恢复 ${backup.length} 个 SKU 的原价`);
-    backup.slice(0, 5).forEach(item => {
-      console.log(`  ${item.productTitle} → ${item.originalPrice}`);
-    });
-    if (backup.length > 5) console.log(`  ...还有 ${backup.length - 5} 个`);
-    console.log('\n   添加 --confirm 参数确认执行');
+  console.log(`⚠️  即将恢复 ${backup.length} 个 SKU 的原价：`);
+  backup.slice(0, 3).forEach(item => console.log(`  ${item.productTitle} → ${item.originalPrice}`));
+  if (backup.length > 3) console.log(`  ...还有 ${backup.length - 3} 个`);
+
+  if (!confirmed && !force) {
+    console.log('\n   添加 --confirm 发起审批请求');
     process.stdout.write('\n__JSON_OUTPUT__\n' + JSON.stringify({ action: 'restore', preview: true, skuCount: backup.length }) + '\n');
     return;
   }
 
-  console.log(`🦞 恢复原价中...\n`);
+  if (confirmed && !force) {
+    const approval = await requestApproval({
+      action: 'bulk_price',
+      description: `恢复原价：将 ${backup.length} 个 SKU 还原至打折前价格`,
+      params: { skuCount: backup.length },
+      command: `node scripts/promotion.mjs restore --force`,
+      preview: { 'SKU 数量': `${backup.length} 个`, '操作': '恢复打折前原价' }
+    });
+    console.log(`\n⏳ 审批请求已创建，审批 ID：${approval.id.slice(0,8)}`);
+    console.log(`   Telegram 已推送通知，点击「✅ 批准」恢复原价`);
+    process.stdout.write('\n__JSON_OUTPUT__\n' + JSON.stringify({ action: 'restore', status: 'pending_approval', approvalId: approval.id }) + '\n');
+    return;
+  }
 
-  const updates = backup.map(item => ({
-    variantId: item.variantId,
-    price: item.originalPrice,
-    comparePrice: null // 清除划线价
-  }));
-
+  console.log(`\n🦞 恢复原价中（审批已通过）...\n`);
+  const updates = backup.map(item => ({ variantId: item.variantId, price: item.originalPrice, comparePrice: null }));
   await bulkUpdatePrices(updates);
+  await writeAuditLog({ action: 'price_change', note: '恢复原价', skuCount: backup.length, canRollback: false });
 
   console.log(`✅ 原价已恢复！共更新 ${backup.length} 个 SKU`);
-
-  process.stdout.write('\n__JSON_OUTPUT__\n' + JSON.stringify({
-    action: 'restore',
-    success: true,
-    skuCount: backup.length
-  }) + '\n');
+  process.stdout.write('\n__JSON_OUTPUT__\n' + JSON.stringify({ action: 'restore', success: true, skuCount: backup.length }) + '\n');
 }
 
 async function run() {

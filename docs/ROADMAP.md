@@ -45,7 +45,7 @@
 - ❌ 评价管理（Judge.me/Loox）
 - ❌ GEO/SEO 系统性内容生成
 - ❌ 多币种/多市场
-- ❌ 审批系统 + 审计日志
+- ✅ 审批系统（audit/approval.mjs）+ 审计日志（audit/logger.mjs）
 - ❌ SOP 模板中心
 
 ---

@@ -19,6 +19,7 @@ import {
   createDraftOrder, completeDraftOrder
 } from '../connectors/shopify.js';
 import { writeAuditLog } from '../audit/logger.mjs';
+import { requestApproval } from '../audit/approval.mjs';
 
 const args = process.argv.slice(2);
 const subcommand = args[0];
@@ -168,15 +169,31 @@ async function cmdRefund() {
   if (!orderId) { console.error('❌ 缺少 --order-id'); process.exit(1); }
   if (!amount) { console.error('❌ 缺少 --amount'); process.exit(1); }
 
+  const force = hasFlag('--force');
   const order = await getOrder(orderId);
+
   console.log(`🦞 退款预览`);
   console.log(`   订单：#${order.order_number} | 订单总额 ${order.currency} ${order.total_price}`);
   console.log(`   退款金额：${order.currency} ${amount}`);
   console.log(`   退款原因：${reason}`);
 
-  if (!confirmed) {
-    console.log('\n⚠️  预览模式，加 --confirm 执行退款');
+  if (!confirmed && !force) {
+    console.log('\n⚠️  预览模式，加 --confirm 发起审批请求');
     process.stdout.write('\n__JSON_OUTPUT__\n' + JSON.stringify({ preview: true, orderId, orderNumber: order.order_number, refundAmount: amount, reason }) + '\n');
+    return;
+  }
+
+  if (confirmed && !force) {
+    const approval = await requestApproval({
+      action: 'refund',
+      description: `退款 ${order.currency} ${amount} — 订单 #${order.order_number}（${reason}）`,
+      params: { orderId, amount, reason },
+      command: `node scripts/order-manage.mjs refund --order-id ${orderId} --amount ${amount} --reason "${reason}" --force`,
+      preview: { '订单': `#${order.order_number}`, '退款金额': `${order.currency} ${amount}`, '原因': reason }
+    });
+    console.log(`\n⏳ 审批请求已创建，审批 ID：${approval.id.slice(0,8)}`);
+    console.log(`   Telegram 已推送通知，点击「✅ 批准」执行退款`);
+    process.stdout.write('\n__JSON_OUTPUT__\n' + JSON.stringify({ status: 'pending_approval', approvalId: approval.id, orderId, orderNumber: order.order_number }) + '\n');
     return;
   }
 
@@ -214,9 +231,25 @@ async function cmdCancel() {
   console.log(`   取消原因：${reasonMap[reason]}`);
   console.log(`   ⚠️  取消后将自动退款并恢复库存`);
 
-  if (!confirmed) {
-    console.log('\n⚠️  预览模式，加 --confirm 执行取消');
+  const force = hasFlag('--force');
+
+  if (!confirmed && !force) {
+    console.log('\n⚠️  预览模式，加 --confirm 发起审批请求');
     process.stdout.write('\n__JSON_OUTPUT__\n' + JSON.stringify({ preview: true, orderId, orderNumber: order.order_number, reason }) + '\n');
+    return;
+  }
+
+  if (confirmed && !force) {
+    const approval = await requestApproval({
+      action: 'cancel',
+      description: `取消订单 #${order.order_number}（${reasonMap[reason]}，自动退款+恢复库存）`,
+      params: { orderId, reason },
+      command: `node scripts/order-manage.mjs cancel --order-id ${orderId} --reason ${reason} --force`,
+      preview: { '订单': `#${order.order_number}`, '金额': `${order.currency} ${order.total_price}`, '取消原因': reasonMap[reason] }
+    });
+    console.log(`\n⏳ 审批请求已创建，审批 ID：${approval.id.slice(0,8)}`);
+    console.log(`   Telegram 已推送通知，点击「✅ 批准」取消订单`);
+    process.stdout.write('\n__JSON_OUTPUT__\n' + JSON.stringify({ status: 'pending_approval', approvalId: approval.id, orderId, orderNumber: order.order_number }) + '\n');
     return;
   }
 
