@@ -430,6 +430,53 @@ export async function deletePriceRule(ruleId) {
   return true;
 }
 
+// ─── 订单扩展操作 ─────────────────────────────────────────
+
+/** 取消订单 */
+export async function cancelOrder(orderId, { reason = 'customer', email = true, restock = true } = {}) {
+  const data = await shopifyPost(`/orders/${orderId}/cancel.json`, {
+    reason,
+    email,
+    restock
+  });
+  return data.order;
+}
+
+/** 添加订单备注（内部，不通知买家） */
+export async function addOrderNote(orderId, message, { notify = false } = {}) {
+  // Shopify 使用 metafields 或 order notes，这里通过更新 note 字段
+  const result = await shopifyPut(`/orders/${orderId}.json`, {
+    order: { id: parseInt(orderId), note: message }
+  });
+  return result.order;
+}
+
+/** 获取订单事件（timeline） */
+export async function getOrderEvents(orderId) {
+  const data = await shopifyFetch(`/orders/${orderId}/events.json`);
+  return data.events;
+}
+
+// ─── 草稿订单（补发/换货用） ──────────────────────────────
+
+/** 创建草稿订单（用于补发、换货） */
+export async function createDraftOrder(draftData) {
+  const data = await shopifyPost('/draft_orders.json', { draft_order: draftData });
+  return data.draft_order;
+}
+
+/** 获取草稿订单 */
+export async function getDraftOrder(id) {
+  const data = await shopifyFetch(`/draft_orders/${id}.json`);
+  return data.draft_order;
+}
+
+/** 完成草稿订单（转为正式订单） */
+export async function completeDraftOrder(id) {
+  const data = await shopifyPut(`/draft_orders/${id}/complete.json`, {});
+  return data.draft_order;
+}
+
 // ─── 变体管理 ──────────────────────────────────────────────
 
 /** 获取商品所有变体 */

@@ -1,13 +1,16 @@
 /**
  * 每日销售日报
  * 电商龙虾 — 自动拉取昨日数据，格式化推送
- * 
- * 用法：node daily-report.mjs [YYYY-MM-DD]
+ *
+ * 用法：node daily-report.mjs [YYYY-MM-DD] [--raw]
+ *   --raw  输出原始 API 数据（用于与 Shopify 后台对照验收）
  */
 
-import { getDailySummary, getShopInfo, getLowStockProducts } from '../connectors/shopify.js';
+import { getDailySummary, getOrders, getShopInfo, getLowStockProducts } from '../connectors/shopify.js';
 
-const dateArg = process.argv[2]; // 可指定日期，默认昨天
+const args = process.argv.slice(2);
+const dateArg = args.find(a => /^\d{4}-\d{2}-\d{2}$/.test(a));
+const rawMode = args.includes('--raw');
 
 async function run() {
   // 默认取昨天
@@ -16,6 +19,27 @@ async function run() {
     : new Date(Date.now() - 86400000);
 
   const dateStr = targetDate.toISOString().split('T')[0];
+
+  // ── --raw 模式：输出原始 API 数据供人工对照 ──────────────
+  if (rawMode) {
+    console.log(`🔍 [RAW MODE] 拉取 ${dateStr} 原始数据...\n`);
+    const start = new Date(dateStr + 'T00:00:00+08:00').toISOString();
+    const end   = new Date(dateStr + 'T23:59:59+08:00').toISOString();
+    const orders = await getOrders({ status: 'any', created_at_min: start, created_at_max: end, limit: 250 });
+
+    console.log(`原始订单数：${orders.length}`);
+    console.log(`（请在 Shopify 后台 → 订单 → 按日期 ${dateStr} 筛选对照）\n`);
+    orders.forEach(o => {
+      const items = (o.line_items || []).map(i => `${i.title}×${i.quantity}`).join(', ');
+      console.log(`  #${o.order_number} | ${o.currency} ${o.total_price} | ${o.financial_status} | ${new Date(o.created_at).toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai' })}`);
+      console.log(`    ${items}`);
+    });
+
+    const total = orders.reduce((s, o) => ['paid','partially_paid'].includes(o.financial_status) ? s + parseFloat(o.total_price) : s, 0);
+    console.log(`\n计算总收入（已付款）：${orders[0]?.currency || ''} ${total.toFixed(2)}`);
+    process.stdout.write('\n__JSON_OUTPUT__\n' + JSON.stringify({ date: dateStr, rawOrders: orders }) + '\n');
+    return;
+  }
 
   console.log(`📊 拉取 ${dateStr} 数据中...`);
 
