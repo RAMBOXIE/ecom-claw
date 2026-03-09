@@ -214,11 +214,10 @@ async function main() {
   const priorityChoice = await singleSelect(
     '您最想先解决的问题是：',
     [
-      { label: '选品     — 找爆款、算利润、监控竞品', value: 'selection' },
-      { label: '上新     — 快速上架、AI 写文案、SEO 优化', value: 'launch' },
-      { label: '转化     — 促销定价、折扣码、商品页优化', value: 'conversion' },
-      { label: '社区     — 评论分析、FAQ 沉淀、内容创意', value: 'community' },
-      { label: '巡检     — 日报/周报/库存预警/订单追踪', value: 'ops' },
+      { label: '🔍 选品雷达   — 趋势挖掘、利润测算、竞品监控、爆款发现', value: 'selection' },
+      { label: '🏪 店铺运营   — 商品上新、订单处理、库存调度、促销定价', value: 'store' },
+      { label: '📣 内容社媒   — 评论运营、FAQ沉淀、小红书/抖音/TikTok文案', value: 'community' },
+      { label: '📊 数据参谋   — 日报周报月报、经营洞察、问题诊断、改进建议', value: 'analytics' },
     ]
   );
   config.business.priority = priorityChoice.value;
@@ -350,7 +349,7 @@ async function main() {
   console.log('  业务模式：' + { domestic: '国内电商', crossborder: '跨境出海', both: '国内+跨境' }[config.business.mode]);
   console.log('  销售渠道：' + config.business.channels.join('、'));
   console.log('  商品类型：' + config.business.categories.join('、'));
-  console.log('  优先目标：' + { selection:'选品', launch:'上新', conversion:'转化', community:'社区', ops:'巡检' }[config.business.priority]);
+  console.log('  优先目标：' + { selection:'🔍 选品雷达', store:'🏪 店铺运营', community:'📣 内容社媒', analytics:'📊 数据参谋' }[config.business.priority]);
   console.log('  审批操作：' + (config.approval.require.length ? config.approval.require.join('、') : '全部不需要'));
   console.log('  通知 ID：' + chatId);
   console.log('  库存预警：< ' + lowStockThreshold);
@@ -370,11 +369,10 @@ async function main() {
 
   console.log('\n  下一步：');
   const nextStepMap = {
-    selection: 'node scripts/product-research.mjs profit --cost 50 --price 150',
-    launch:    'node scripts/list-product.mjs --help',
-    conversion:'node scripts/promotion.mjs preview --discount 0.8',
-    community: 'node scripts/customer-service.mjs faq-list',
-    ops:       'node scripts/daily-report.mjs',
+    selection:  'node modules/selection/index.mjs --help',
+    store:      'node modules/store/index.mjs --help',
+    community:  'node modules/community/index.mjs --help',
+    analytics:  'node scripts/daily-report.mjs',
   };
   console.log(`    ${nextStepMap[config.business.priority]}`);
   console.log('\n  Dashboard：node scripts/dashboard-server.mjs → http://localhost:3458\n');
