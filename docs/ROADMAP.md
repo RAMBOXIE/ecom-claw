@@ -12,19 +12,41 @@
 ## 当前版本：v1.0（已交付，2026-03-06）
 
 ### v1.0 已完成清单
-- [x] Shopify Admin API 连接层
-- [x] 有赞 API 框架（待激活）
+
+#### 平台连接
+- [x] Shopify Admin API 连接层（connectors/shopify.js）
+- [x] 有赞 API 框架（connectors/youzan.js，待激活）
+- [x] WooCommerce REST API connector（connectors/woocommerce.js）
 - [x] OAuth 向导（setup.mjs）
 - [x] 5 个 Cron 自动化任务（日报/订单通知/库存预警/周报/月报）
-- [x] 29 个脚本（报告/上架/订单/库存/营销/客服/竞品/物流）
-- [x] Dashboard UI（配置向导 + 实时看板）
 
-### v1.0 已知问题（待修复）
-- 🔴 **P0**：所有 Cron 报 HTTP 403（订单通知连续失败 9 次）
-- 🔴 **P1**：discount-codes 缺 price_rules scope
-- 🟡 **P2**：GitHub repo 未推送
-- 🟡 **P2**：有赞未接入
-- 🟡 **P2**：物流追踪需快递100 API key
+#### Shopify 已实现功能
+- [x] 单品上架 / 批量上架（CSV）/ 变体管理
+- [x] 订单列表 / 发货 / 退款
+- [x] 新订单实时通知（15分钟轮询）
+- [x] 低库存预警（Cron 定时）
+- [x] 批量改价（含原价备份/回滚）
+- [x] 客户管理（概览/TOP排行/CSV导出）
+- [x] 日报 / 周报 / 月报
+- [x] 物流追踪（单单/全量）
+- [x] 多平台文案生成（5个平台风格）
+- [x] Dashboard Web 看板
+- [x] 系统健康巡检
+
+#### 存在限制
+- ⚠️ 折扣码：代码完整，缺 Shopify app price_rules scope
+- ⚠️ 竞品监控：仅支持 HTML 静态页，不支持 SPA
+- ⚠️ 物流追踪：需配快递100 API key
+- ⚠️ 评价管理：无法直接从 Shopify 抓取（Shopify 无原生评价）
+- ⚠️ WooCommerce：connector 已写，待真实测试店验证
+
+#### 电商必须但 v1.0 未覆盖
+- ❌ 售后工单流程（换货/补发）
+- ❌ 评价管理（Judge.me/Loox）
+- ❌ GEO/SEO 系统性内容生成
+- ❌ 多币种/多市场
+- ❌ 审批系统 + 审计日志
+- ❌ SOP 模板中心
 
 ---
 

@@ -5,6 +5,17 @@
 
 ---
 
+## 状态图例
+
+| 标记 | 含义 |
+|------|------|
+| ✅ 已实现 | 可直接使用，经过基本验证 |
+| ⚠️ 部分实现 | 框架/代码存在，但有限制或缺依赖 |
+| 🚧 开发中 | v2.0 当前迭代目标 |
+| ❌ 未实现 | 已规划但尚未开始 |
+
+---
+
 ## 0. 架构总则
 
 ### 执行层优先级（不可颠倒）
@@ -26,7 +37,7 @@ pending → running → awaiting_approval → approved/rejected → completed/fa
 
 ---
 
-## 1. Selection Bot（选品模块）
+## 1. Selection Bot（选品模块）`🚧 开发中`
 
 ### 职责
 发现候选品类 / SKU，提供竞品分析和市场机会判断。
@@ -77,7 +88,7 @@ pending → running → awaiting_approval → approved/rejected → completed/fa
 
 ---
 
-## 2. Launch Bot（上新模块）
+## 2. Launch Bot（上新模块）`🚧 开发中`
 
 ### 职责
 生成商品页草稿，覆盖 SEO 和 GEO 要求，支持多平台适配。
@@ -140,7 +151,7 @@ pending → running → awaiting_approval → approved/rejected → completed/fa
 - **图片 alt 文本**：每张图描述性 alt 文本
 - **事实模块**：物流时效、退换政策、售后说明（可选）
 
-#### 2.4 多平台文案风格
+#### 2.4 多平台文案风格 `✅ 已实现`（copywriter.mjs）
 
 | 平台 | 字数 | 风格 |
 |------|------|------|
@@ -150,12 +161,12 @@ pending → running → awaiting_approval → approved/rejected → completed/fa
 | 抖音 | 50-100字 | 口播脚本，节奏感强 |
 | 微信 | 200-500字 | 情感化，朋友圈/公众号风格 |
 
-#### 2.5 图片上传（Shopify）
+#### 2.5 图片上传（Shopify）`✅ 已实现`（upload-image-base64.mjs）
 - 下载 URL → buffer → base64 → Shopify attachment 接口
 - **注意**：Trial 账号不支持外部 URL 直接引用，必须 base64
 - 支持批量上传，失败单张不中断整体流程
 
-#### 2.6 批量上架
+#### 2.6 批量上架 `✅ 已实现`（bulk-import.mjs）
 - CSV 格式：`title,price,compare_price,sku,stock,description,images,status`
 - `images` 多图用 `|` 分隔
 - 支持 `--dry-run` 预览、`--confirm` 执行
@@ -163,7 +174,7 @@ pending → running → awaiting_approval → approved/rejected → completed/fa
 
 ---
 
-## 3. Community Bot（社区模块）
+## 3. Community Bot（社区模块）`🚧 开发中`
 
 ### 职责
 汇总社区问题、归纳评论情感、将高价值信息回流到 FAQ 和内容策略。
@@ -208,12 +219,12 @@ pending → running → awaiting_approval → approved/rejected → completed/fa
 
 ---
 
-## 4. Ops Bot（日常运营模块）
+## 4. Ops Bot（日常运营模块）`✅ 核心已实现`
 
 ### 职责
 日报/周报/月报、库存预警、页面巡检、多渠道健康度检查。
 
-### 4.1 日报（daily-report）
+### 4.1 日报（daily-report）`✅ 已实现`
 
 **触发**：Cron 每天 08:00 HKT，或手动
 
@@ -240,19 +251,19 @@ pending → running → awaiting_approval → approved/rejected → completed/fa
 }
 ```
 
-### 4.2 周报（weekly-report）
+### 4.2 周报（weekly-report）`✅ 已实现`
 - 本周 vs 上周：销售额、订单数、新客数
 - 每日趋势（7天折线数据）
 - TOP10 商品（周销量排行）
 - 新客 vs 回头客比例
 
-### 4.3 月报（monthly-report）
+### 4.3 月报（monthly-report）`✅ 已实现`
 - 月度销售额、订单量
 - 周分段数据（第1~4周）
 - 客户留存率
 - 月度峰值日
 
-### 4.4 订单通知（order-notify）
+### 4.4 订单通知（order-notify）`✅ 已实现`
 - **触发**：Cron 每 15 分钟
 - 读 `.last-order-check.json` → 拉新订单 → 过滤已通知 → 推送
 - 有新订单：格式化消息推 Telegram
@@ -275,7 +286,7 @@ pending → running → awaiting_approval → approved/rejected → completed/fa
 }
 ```
 
-### 4.5 库存预警（stock-alert）
+### 4.5 库存预警（stock-alert）`✅ 已实现`
 - **触发**：Cron 09/15/21 点 HKT
 - 有低库存：推送告警
 - 全部正常：静默
@@ -290,7 +301,7 @@ pending → running → awaiting_approval → approved/rejected → completed/fa
 }
 ```
 
-### 4.6 页面巡检（health-check）
+### 4.6 页面巡检（health-check）`✅ 已实现`
 检查项：
 1. config.json 存在且格式正确
 2. Shopify API 连通（GET /shop.json）
@@ -302,7 +313,7 @@ pending → running → awaiting_approval → approved/rejected → completed/fa
 
 ## 5. 连接层（connectors/）
 
-### 5.1 shopify.js
+### 5.1 shopify.js `✅ 已实现`
 
 | 函数 | 说明 |
 |------|------|
@@ -324,7 +335,7 @@ pending → running → awaiting_approval → approved/rejected → completed/fa
 - 自动从 `config.json` 读凭证
 - Shopify 429 自动等待 Retry-After 重试（最多3次）
 
-### 5.2 woocommerce.js
+### 5.2 woocommerce.js `✅ connector 已实现，待接入测试`
 
 **职责：** 封装 WooCommerce REST API（`/wp-json/wc/v3/`），接口与 shopify.js 保持一致。
 
@@ -382,7 +393,7 @@ pending → running → awaiting_approval → approved/rejected → completed/fa
 
 ---
 
-### 5.3 youzan.js
+### 5.3 youzan.js `⚠️ 框架已建，待配置`
 框架已建，待填 access_token 后激活。
 预期导出：`getYouzanOrders / getYouzanProducts / getYouzanInventory`
 
@@ -555,3 +566,64 @@ __JSON_OUTPUT__ {"key": "value"}
 - 使用 Markdown 加粗关键数字
 - 结尾加「以上」
 - 无数据时不发消息（静默）
+
+---
+
+## 12. Shopify 功能实现状态矩阵
+
+> 最后核查：2026-03-09
+
+### ✅ 已实现（可直接用）
+
+| 功能 | 脚本 | 说明 |
+|------|------|------|
+| 单品上架 | list-product.mjs | 标题/价格/SKU/库存/图片/草稿 |
+| 批量上架 | bulk-import.mjs | CSV 导入，支持 dry-run |
+| 变体管理 | sku-manage.mjs | 列出/更新价格库存/新增变体 |
+| 订单列表 | order-manage.mjs list | 待发货筛选、状态筛选 |
+| 发货 | order-manage.mjs fulfill | 填单号+快递公司，标记已发货 |
+| 退款 | order-manage.mjs refund | 指定金额+原因 |
+| 新订单通知 | order-notify.mjs | 每15分钟轮询，有单推 Telegram |
+| 低库存预警 | stock-alert.mjs | 低于阈值自动告警，Cron 定时 |
+| 库存更新 | sku-manage.mjs update | 单个 SKU 调整 |
+| 批量改价 | promotion.mjs | 全店/指定商品打折，自动备份可回滚 |
+| 客户概览 | customers.mjs list | 总数、新客、回头客统计 |
+| 消费排行 | customers.mjs top | TOP20 客户 |
+| 客户导出 | customers.mjs export | 完整客户数据 CSV |
+| 日报 | daily-report.mjs | 销售/订单/热销/库存，Cron 定时 |
+| 周报 | weekly-report.mjs | 环比 + 趋势 + TOP商品 |
+| 月报 | monthly-report.mjs | 月度趋势 + 峰值日 |
+| 物流追踪（单单） | logistics.mjs track | 自动识别快递公司 |
+| 物流追踪（全量） | logistics.mjs track-all | 所有已发货订单 |
+| 多平台文案 | copywriter.mjs | 5个平台风格 |
+| 图片上传 | upload-image-base64.mjs | base64 方案（Trial 账号兼容） |
+| 连接测试 | connect-test.mjs | 验证 API 连通 |
+| 系统巡检 | health-check.mjs | 连通性/文件/服务全检 |
+| Dashboard | dashboard-server.mjs | Web 看板 port 3458 |
+| 多平台汇总 | multi-shop.mjs | 各平台状态 + 销售汇总 |
+
+### ⚠️ 框架有但不完整
+
+| 功能 | 脚本 | 缺什么 | 优先级 |
+|------|------|--------|--------|
+| 折扣码 | discount-codes.mjs | Shopify app 缺 price_rules + discounts scope，重新 OAuth 即可解锁 | P1 |
+| 竞品价格监控 | competitor-watch.mjs | 仅支持 HTML 静态页，不支持 JS 渲染的 SPA（天猫/淘宝等） | P2 |
+| 物流追踪 API | logistics.mjs | 需配快递100 API key，否则无法自动识别 | P2 |
+| 评价模板 | customer-service.mjs | 模板已有，但无法从 Shopify 实际抓取评价（Shopify 无原生评价系统） | P2 |
+| WooCommerce | woocommerce.js | Connector 已写完，待接入真实 WooCommerce 测试店验证 | P1 |
+| 有赞 | youzan.js | 框架已建，需填 access_token | P2 |
+
+### ❌ 电商必须但尚未实现
+
+| 功能 | 说明 | 规划版本 |
+|------|------|---------|
+| **售后工单流程** | 退款已有，但换货/补发/维修流程没有 | v2.0 |
+| **评价管理** | 差评监控、评价回复，需接 Judge.me / Loox API | v2.0 |
+| **GEO/SEO 系统性生成** | FAQ/规格/对比段落系统化生成（Launch Bot 核心） | v2.0 |
+| **多币种/多市场** | 跨境必须，现仅支持单店铺单货币 | v2.0 |
+| **库存预测** | 根据历史销量预测补货周期，现只有静态阈值 | v3.0 |
+| **税费/运费规则管理** | 完全依赖 Shopify 后台手动配置 | v3.0 |
+| **审批系统** | 高风险操作（改价/退款）需人工审批流 | v2.0 |
+| **审计日志** | 所有操作记录 before/after，支持回滚 | v2.0 |
+| **SOP 模板中心** | 标准化运营工作流模板 | v2.0 |
+| **订阅/会员** | 订阅商品、会员体系（需 Stripe 或 Recharge） | v4.0 |
