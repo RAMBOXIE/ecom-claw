@@ -4,9 +4,11 @@
  *
  * 用法：
  *   node modules/store/index.mjs --launch    [--product-id ID] [--list-incomplete] [--run-all]
+ *   node modules/store/index.mjs --catalog   <list|search|detail|create|update|archive|delete|duplicate|image|variant> [...]
  *   node modules/store/index.mjs --orders    <list|detail|fulfill|refund|cancel|note|resend> [...]
  *   node modules/store/index.mjs --inventory <status|alert|list|skus|update|price> [...]
  *   node modules/store/index.mjs --promotions <preview|apply|restore|discounts> [...]
+ *   node modules/store/index.mjs --logistics  <track|list|update|cancel|zones|services> [...]
  */
 
 import { join, dirname } from 'path';
@@ -63,11 +65,33 @@ async function main() {
     return;
   }
 
+  // ── 商品目录 ──────────────────────────────────────────────
+  if (has('--catalog')) {
+    const { execSync } = await import('child_process');
+    const extra = args.filter(a => a !== '--catalog').join(' ');
+    const out   = execSync(`node "${join(__dirname, 'catalog.mjs')}" ${extra}`, {
+      encoding: 'utf8', cwd: join(__dirname, '..', '..')
+    });
+    process.stdout.write(out);
+    return;
+  }
+
   // ── 促销定价 ──────────────────────────────────────────────
   if (has('--promotions')) {
     const { execSync } = await import('child_process');
     const extra = args.filter(a => a !== '--promotions').join(' ');
     const out   = execSync(`node "${join(__dirname, 'promotions.mjs')}" ${extra}`, {
+      encoding: 'utf8', cwd: join(__dirname, '..', '..')
+    });
+    process.stdout.write(out);
+    return;
+  }
+
+  // ── 物流履约 ──────────────────────────────────────────────
+  if (has('--logistics')) {
+    const { execSync } = await import('child_process');
+    const extra = args.filter(a => a !== '--logistics').join(' ');
+    const out   = execSync(`node "${join(__dirname, 'logistics.mjs')}" ${extra}`, {
       encoding: 'utf8', cwd: join(__dirname, '..', '..')
     });
     process.stdout.write(out);
@@ -118,6 +142,30 @@ async function main() {
   node modules/store/index.mjs --promotions discounts list
   node modules/store/index.mjs --promotions discounts create --type percent --value 20 --code SAVE20
   node modules/store/index.mjs --promotions discounts delete --rule-id ID
+
+────────────────────────────────────────────────────────
+  商品目录
+────────────────────────────────────────────────────────
+  node modules/store/index.mjs --catalog list      [--status active|draft|archived]
+  node modules/store/index.mjs --catalog search    --query "关键词"
+  node modules/store/index.mjs --catalog detail    --product-id ID
+  node modules/store/index.mjs --catalog create    --title "商品名" --price 99
+  node modules/store/index.mjs --catalog update    --product-id ID --title X
+  node modules/store/index.mjs --catalog archive   --product-id ID --confirm
+  node modules/store/index.mjs --catalog delete    --product-id ID --confirm
+  node modules/store/index.mjs --catalog duplicate --product-id ID
+  node modules/store/index.mjs --catalog image     --product-id ID --url "https://..."
+  node modules/store/index.mjs --catalog variant   --product-id ID list
+
+────────────────────────────────────────────────────────
+  物流与履约
+────────────────────────────────────────────────────────
+  node modules/store/index.mjs --logistics track    --order-id ID
+  node modules/store/index.mjs --logistics list     --order-id ID
+  node modules/store/index.mjs --logistics update   --order-id ID --fulfillment-id ID --tracking NUM --company 顺丰
+  node modules/store/index.mjs --logistics cancel   --order-id ID --fulfillment-id ID --confirm
+  node modules/store/index.mjs --logistics zones
+  node modules/store/index.mjs --logistics services
 
   详细文档：cat modules/store/SKILL.md
   `);

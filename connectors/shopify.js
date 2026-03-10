@@ -542,3 +542,167 @@ export async function updateImageAlt(productId, imageId, alt) {
   });
   return data.image;
 }
+
+// ─── 商品目录扩展 ────────────────────────────────────────────
+
+/** 搜索商品（title/vendor/product_type 关键词） */
+export async function searchProducts(query, { limit = 20, status = 'any' } = {}) {
+  const data = await shopifyFetch(`/products.json?title=${encodeURIComponent(query)}&limit=${limit}&status=${status}`);
+  return data.products || [];
+}
+
+/** 归档商品（status → archived） */
+export async function archiveProduct(productId) {
+  const data = await shopifyPut(`/products/${productId}.json`, {
+    product: { id: parseInt(productId), status: 'archived' }
+  });
+  return data.product;
+}
+
+/** 永久删除商品 */
+export async function deleteProduct(productId) {
+  const config = loadConfig();
+  const base = getShopifyBase(config);
+  const url = `${base}/products/${productId}.json`;
+  return new Promise((resolve, reject) => {
+    const req = https.request(url, {
+      method: 'DELETE',
+      headers: {
+        'X-Shopify-Access-Token': config.shopify.access_token,
+        'Content-Type': 'application/json'
+      }
+    }, res => {
+      let body = '';
+      res.on('data', d => body += d);
+      res.on('end', () => resolve({ deleted: true, status: res.statusCode }));
+    });
+    req.on('error', reject);
+    req.end();
+  });
+}
+
+/** 复制商品为草稿 */
+export async function duplicateProduct(productId, newTitle) {
+  const original = await getProduct(productId);
+  const p = original.product || original;
+  const copy = {
+    title:        newTitle || `${p.title} (Copy)`,
+    body_html:    p.body_html,
+    vendor:       p.vendor,
+    product_type: p.product_type,
+    tags:         p.tags,
+    status:       'draft',
+    variants:     (p.variants || []).map(v => ({
+      price:           v.price,
+      compare_at_price: v.compare_at_price,
+      sku:             v.sku ? `${v.sku}-copy` : '',
+      inventory_management: v.inventory_management,
+      weight:          v.weight,
+      option1:         v.option1,
+      option2:         v.option2,
+      option3:         v.option3,
+    })),
+    options: p.options || [],
+  };
+  const data = await shopifyPost('/products.json', { product: copy });
+  return data.product;
+}
+
+/** 删除商品图片 */
+export async function deleteProductImage(productId, imageId) {
+  const config = loadConfig();
+  const base = getShopifyBase(config);
+  const url = `${base}/products/${productId}/images/${imageId}.json`;
+  return new Promise((resolve, reject) => {
+    const req = https.request(url, {
+      method: 'DELETE',
+      headers: { 'X-Shopify-Access-Token': config.shopify.access_token }
+    }, res => {
+      res.on('data', () => {});
+      res.on('end', () => resolve({ deleted: true, status: res.statusCode }));
+    });
+    req.on('error', reject);
+    req.end();
+  });
+}
+
+// ─── 物流 / 履约扩展 ─────────────────────────────────────────
+
+/** 获取订单的所有履约记录 */
+export async function getOrderFulfillments(orderId) {
+  const data = await shopifyFetch(`/orders/${orderId}/fulfillments.json`);
+  return data.fulfillments || [];
+}
+
+/** 获取单条履约详情 */
+export async function getFulfillment(orderId, fulfillmentId) {
+  const data = await shopifyFetch(`/orders/${orderId}/fulfillments/${fulfillmentId}.json`);
+  return data.fulfillment;
+}
+
+/** 更新物流追踪信息 */
+export async function updateFulfillmentTracking(orderId, fulfillmentId, { trackingNumber, trackingCompany, trackingUrl } = {}) {
+  const body = {
+    fulfillment: {
+      id: parseInt(fulfillmentId),
+      tracking_number: trackingNumber,
+      tracking_company: trackingCompany,
+    }
+  };
+  if (trackingUrl) body.fulfillment.tracking_url = trackingUrl;
+  const data = await shopifyPut(`/orders/${orderId}/fulfillments/${fulfillmentId}.json`, body);
+  return data.fulfillment;
+}
+
+/** 取消履约 */
+export async function cancelFulfillment(orderId, fulfillmentId) {
+  const config = loadConfig();
+  const base = getShopifyBase(config);
+  const url = `${base}/orders/${orderId}/fulfillments/${fulfillmentId}/cancel.json`;
+  return new Promise((resolve, reject) => {
+    const req = https.request(url, {
+      method: 'POST',
+      headers: {
+        'X-Shopify-Access-Token': config.shopify.access_token,
+        'Content-Type': 'application/json',
+        'Content-Length': 0
+      }
+    }, res => {
+      let body = '';
+      res.on('data', d => body += d);
+      res.on('end', () => {
+        try { resolve(JSON.parse(body)); } catch { resolve({ raw: body }); }
+      });
+    });
+    req.on('error', reject);
+    req.end();
+  });
+}
+
+/** 获取履约服务列表 */
+export async function getFulfillmentServices() {
+  const data = await shopifyFetch('/fulfillment_services.json');
+  return data.fulfillment_services || [];
+}
+
+/** 获取配送区域与运费 */
+export async function getShippingZones() {
+  const data = await shopifyFetch('/shipping_zones.json');
+  return data.shipping_zones || [];
+}
+
+/** 获取已完成订单的追踪摘要 */
+export async function getTrackingSummary(orderId) {
+  const fulfillments = await getOrderFulfillments(orderId);
+  return fulfillments.map(f => ({
+    id:              f.id,
+    status:          f.status,
+    tracking_number: f.tracking_number,
+    tracking_company: f.tracking_company,
+    tracking_url:    f.tracking_url,
+    created_at:      f.created_at,
+    updated_at:      f.updated_at,
+    shipment_status: f.shipment_status,
+    line_items:      (f.line_items || []).map(li => ({ id: li.id, name: li.name, quantity: li.quantity })),
+  }));
+}
